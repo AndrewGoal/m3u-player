@@ -28,7 +28,8 @@
     timeZone: 'Asia/Shanghai',
     timezoneOffsetMinutes: 480,
     autoplay: null,
-    sources: []
+    sources: [],
+    showSources: true
   }, window.M3U_PLAYER_CONFIG || {});
 
   if (Parser.configure) {
@@ -41,6 +42,8 @@
   var STORAGE_NS = 'm3u-player:' + String(CONFIG.id || 'default') + ':';
   var CACHE_KEY = STORAGE_NS + 'playlist:v1';
   var AUTONEXT_KEY = STORAGE_NS + 'autonext';
+  var SOURCES_KEY = STORAGE_NS + 'sources:v1';
+  var ACTIVE_SOURCE_KEY = STORAGE_NS + 'active-source:v1';
 
   var params = new URLSearchParams(location.search);
   if (params.get('title')) CONFIG.title = params.get('title');
@@ -50,6 +53,10 @@
   var refreshMinutes = clamp(parseInt(params.get('refresh'), 10) || CONFIG.refreshMinutes || 30, 1, 720);
   var refreshMs = refreshMinutes * 60 * 1000;
   var customSource = params.get('m3u');
+  var sourcesParam = params.get('sources');
+  var showSourcesParam = params.get('showSources');
+  if (sourcesParam !== null && /^(0|false|off|no)$/i.test(sourcesParam)) CONFIG.showSources = false;
+  if (showSourcesParam !== null && /^(0|false|off|no)$/i.test(showSourcesParam)) CONFIG.showSources = false;
   var autoplayParam = params.get('autoplay') || CONFIG.autoplay;
   // 默认打开即自动播放；?autoplay=0 关闭，?autoplay=muted 直接静音自动播放
   var autoplayEnabled = autoplayParam !== '0' && autoplayParam !== 'false';
@@ -512,35 +519,262 @@
 
   /* ---------- 数据源 ---------- */
 
-  function buildSources() {
-    if (customSource) {
-      var resolved;
-      try {
-        resolved = new URL(customSource, location.href).href;
-      } catch (err) {
-        resolved = customSource;
-      }
-      return [{ url: resolved, label: '自定义 m3u', primary: true, custom: true }];
-    }
+  var WEATHER_M3U_URL = 'https://andrewgoal.github.io/cctv_weather_forecasting_m3u/cctv_weather_forecasting.m3u';
+  var IPTV_M3U_URL = 'https://iptv.yang-1989.xyz/playlist.m3u';
 
-    var configured = CONFIG.sources || [];
-    if (!configured.length) return [];
+  var BUILTIN_SOURCES = [
+    { id: 'builtin:weather-live', label: '气象万千 · 浏览器生成', provider: 'weatherLive', primary: true, builtin: true },
+    { id: 'builtin:weather-file', label: '气象万千 · M3U 文件', url: WEATHER_M3U_URL, builtin: true },
+    { id: 'builtin:iptv-file', label: 'IPTV · M3U 文件', url: IPTV_M3U_URL, builtin: true }
+  ];
 
-    return configured.map(function (source, index) {
-      if (typeof source === 'string') {
-        return { url: source, label: 'm3u 源 ' + (index + 1), primary: index === 0 };
-      }
-      return {
-        url: source.url || '',
-        provider: source.provider || '',
-        label: source.label || (source.provider ? '实时生成' : 'm3u 源 ' + (index + 1)),
-        primary: index === 0,
-        custom: !!source.custom
-      };
-    });
+  // 添加节目源时的随机名称，全部为四字成语/短语
+  var SOURCE_NAME_POOL = [
+    '海纳百川', '气象万千', '万象更新', '川流不息', '风起云涌', '云开雾散',
+    '山清水秀', '柳暗花明', '一帆风顺', '龙马精神', '蒸蒸日上', '欣欣向荣',
+    '厚德载物', '自强不息', '宁静致远', '天道酬勤', '海阔天空', '鹏程万里',
+    '锦绣前程', '春意盎然', '秋高气爽', '星罗棋布', '水落石出', '峰回路转',
+    '别有洞天', '心旷神怡', '百花齐放', '百家争鸣', '旭日东升', '皓月千里'
+  ];
+
+  function resolveSourceUrl(value) {
+    try { return new URL(value, location.href).href; } catch (err) { return value; }
   }
 
-  var SOURCES = buildSources();
+  function normalizeSource(raw, index) {
+    if (typeof raw === 'string') {
+      return { id: 'config:' + index, label: 'm3u 源 ' + (index + 1), url: resolveSourceUrl(raw) };
+    }
+    var source = raw || {};
+    return {
+      id: source.id || ('config:' + index),
+      label: source.label || (source.provider ? '实时生成' : 'm3u 源 ' + (index + 1)),
+      provider: source.provider || '',
+      url: source.url ? resolveSourceUrl(source.url) : '',
+      primary: !!source.primary,
+      custom: !!source.custom
+    };
+  }
+
+  function sameEndpoint(a, b) {
+    if (a.provider || b.provider) return a.provider === b.provider;
+    return a.url === b.url;
+  }
+
+  function readJSON(key, fallback) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (err) {
+      return fallback;
+    }
+  }
+
+  function loadSources() {
+    var list = BUILTIN_SOURCES.map(function (source) { return Object.assign({}, source); });
+
+    function append(source) {
+      if (!source.provider && !source.url) return;
+      if (list.some(function (existing) { return sameEndpoint(existing, source); })) return;
+      list.push(source);
+    }
+
+    (CONFIG.sources || []).forEach(function (raw, index) { append(normalizeSource(raw, index)); });
+
+    var saved = readJSON(SOURCES_KEY, []);
+    if (Array.isArray(saved)) {
+      saved.forEach(function (raw, index) {
+        var source = normalizeSource(raw, index);
+        source.id = raw.id || ('user:' + Date.now() + ':' + index);
+        source.custom = true;
+        append(source);
+      });
+    }
+
+    if (customSource) {
+      var custom = normalizeSource(customSource, 0);
+      custom.id = 'custom:url';
+      custom.label = '自定义 m3u';
+      custom.primary = true;
+      custom.custom = true;
+      custom.ephemeral = true;
+      list.unshift(custom);
+    }
+
+    return list;
+  }
+
+  var SOURCES = loadSources();
+  var activeSourceId = readJSON(ACTIVE_SOURCE_KEY, '') || '';
+  if (customSource) activeSourceId = 'custom:url';
+
+  function findSource(id) {
+    return SOURCES.filter(function (source) { return source.id === id; })[0] || null;
+  }
+
+  if (!findSource(activeSourceId)) activeSourceId = SOURCES[0] ? SOURCES[0].id : '';
+
+  function persistSources() {
+    try {
+      localStorage.setItem(SOURCES_KEY, JSON.stringify(SOURCES.filter(function (source) {
+        return !source.builtin && !source.ephemeral;
+      }).map(function (source) {
+        return { id: source.id, label: source.label, url: source.url, provider: source.provider };
+      })));
+    } catch (err) { /* 存储不可用时忽略 */ }
+  }
+
+  function persistActiveSource() {
+    try { localStorage.setItem(ACTIVE_SOURCE_KEY, activeSourceId); } catch (err) { /* 忽略 */ }
+  }
+
+  function orderedSources() {
+    var active = findSource(activeSourceId) || SOURCES[0];
+    if (!active) return [];
+    return [active].concat(SOURCES.filter(function (source) { return source !== active; }));
+  }
+
+  var suggestedName = '';
+
+  function randomSourceName() {
+    var used = {};
+    SOURCES.forEach(function (source) { used[source.label] = true; });
+    var name = SOURCE_NAME_POOL[Math.floor(Math.random() * SOURCE_NAME_POOL.length)];
+    for (var i = 0; i < 12 && used[name]; i++) {
+      name = SOURCE_NAME_POOL[Math.floor(Math.random() * SOURCE_NAME_POOL.length)];
+    }
+    return name;
+  }
+
+  function refreshNameHint() {
+    suggestedName = randomSourceName();
+    var input = $('sourceNameInput');
+    if (input) input.placeholder = '名称（留空用「' + suggestedName + '」）';
+  }
+
+  function ensureSourcePanel() {
+    if (!CONFIG.showSources) return null;
+    var panel = $('sourcePanel');
+    if (panel) return panel;
+    var sidebar = $('sidebar') || document.body;
+    panel = document.createElement('section');
+    panel.className = 'source-panel';
+    panel.id = 'sourcePanel';
+    panel.innerHTML = '' +
+      '<div class="source-panel-head"><span>节目源</span><span class="source-count" id="sourceCount"></span></div>' +
+      '<div class="source-items" id="sourceItems"></div>' +
+      '<form class="source-add" id="sourceAddForm">' +
+      '<div class="source-add-row">' +
+      '<input id="sourceNameInput" type="text" autocomplete="off" spellcheck="false" aria-label="节目源名称（可选）">' +
+      '<button type="button" id="sourceNameDice" class="source-dice" title="换一个随机名称" aria-label="换一个随机名称">🎲</button>' +
+      '</div>' +
+      '<div class="source-add-row">' +
+      '<input id="sourceUrlInput" type="url" placeholder="添加 m3u 地址…" autocomplete="off" spellcheck="false" aria-label="m3u 地址">' +
+      '<button type="submit" title="添加节目源">添加</button>' +
+      '</div>' +
+      '</form>';
+    var head = sidebar.querySelector('.sidebar-head');
+    sidebar.insertBefore(panel, head || sidebar.firstChild);
+    $('sourceNameDice').addEventListener('click', function () { refreshNameHint(); });
+    $('sourceAddForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+      var nameInput = $('sourceNameInput');
+      var urlInput = $('sourceUrlInput');
+      if (addSource(urlInput.value, nameInput.value)) {
+        nameInput.value = '';
+        urlInput.value = '';
+        refreshNameHint();
+      }
+    });
+    refreshNameHint();
+    return panel;
+  }
+
+  function renderSourceList() {
+    if (!CONFIG.showSources) return;
+    ensureSourcePanel();
+    var box = $('sourceItems');
+    box.replaceChildren();
+
+    SOURCES.forEach(function (source) {
+      var row = document.createElement('div');
+      row.className = 'source-item' + (source.id === activeSourceId ? ' is-active' : '');
+
+      var select = document.createElement('button');
+      select.type = 'button';
+      select.className = 'source-select';
+      select.textContent = source.label;
+      select.title = source.provider ? '浏览器实时生成' : source.url;
+      select.addEventListener('click', function () {
+        if (source.id !== activeSourceId) selectSource(source.id);
+      });
+      row.appendChild(select);
+
+      if (source.builtin) {
+        var badge = document.createElement('span');
+        badge.className = 'source-badge';
+        badge.textContent = '内置';
+        row.appendChild(badge);
+      } else {
+        var remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'source-remove';
+        remove.textContent = '×';
+        remove.title = '删除节目源：' + source.label;
+        remove.setAttribute('aria-label', '删除节目源：' + source.label);
+        remove.addEventListener('click', function () { deleteSource(source.id); });
+        row.appendChild(remove);
+      }
+
+      box.appendChild(row);
+    });
+
+    $('sourceCount').textContent = SOURCES.length + ' 个';
+  }
+
+  function selectSource(id) {
+    var source = findSource(id);
+    if (!source) return;
+    activeSourceId = id;
+    persistActiveSource();
+    renderSourceList();
+    loadPlaylist({ manual: true });
+  }
+
+  function addSource(value, name) {
+    var url = resolveSourceUrl(String(value || '').trim());
+    if (!/^https?:\/\//i.test(url)) {
+      toast('请输入 http(s) 开头的 m3u 地址', 'error');
+      return false;
+    }
+    var id = 'user:' + Date.now() + ':' + Math.floor(Math.random() * 1000);
+    var customName = String(name || '').trim();
+    var label = customName || suggestedName || randomSourceName();
+    SOURCES.push({ id: id, label: label, url: url, custom: true });
+    persistSources();
+    activeSourceId = id;
+    persistActiveSource();
+    renderSourceList();
+    loadPlaylist({ manual: true });
+    toast('已添加并切换到：' + label);
+    return true;
+  }
+
+  function deleteSource(id) {
+    var source = findSource(id);
+    if (!source || source.builtin) return;
+    SOURCES = SOURCES.filter(function (item) { return item.id !== id; });
+    persistSources();
+    if (activeSourceId === id) {
+      activeSourceId = SOURCES[0] ? SOURCES[0].id : '';
+      persistActiveSource();
+      renderSourceList();
+      loadPlaylist({ manual: true });
+    } else {
+      renderSourceList();
+    }
+    toast('已删除节目源：' + source.label);
+  }
 
   function fetchText(url, timeoutMs) {
     var controller = new AbortController();
@@ -614,12 +848,13 @@
     if (!opts.silent) setStatus('正在加载最新播放列表…', 'loading');
 
     var errors = [];
+    var playlistSources = orderedSources();
 
     function trySource(index) {
-      if (index >= SOURCES.length) {
+      if (index >= playlistSources.length) {
         return Promise.reject(errors[errors.length - 1] || new Error('没有可用的数据源'));
       }
-      var source = SOURCES[index];
+      var source = playlistSources[index];
       return resolveSource(source, source.custom ? 20000 : 12000)
         .then(function (result) {
           if (!result.text || !result.text.trim()) throw new Error('播放列表为空');
@@ -708,7 +943,7 @@
       state.filterGroup = 'all';
     }
 
-    saveCache(result.text, result.lastModified, result.baseUrl);
+    saveCache(result.text, result.lastModified, result.baseUrl, result.source.id);
 
     var previousCurrent = state.current;
     var refreshedCurrent = previousCurrent ? findItem(function (item) {
@@ -764,12 +999,14 @@
       }
     }
 
-    // 只要成功从在线源加载，就清掉之前残留的离线缓存提示
-    if (!result.source.cached) hideNotice('fallback');
-    if (!result.source.cached && state.source && !state.source.primary && !state.source.custom) {
-      showNotice('主数据源暂时不可用，当前使用' + state.source.label + '（可能不是最新）。稍后点「刷新」重试。', 'warn', {
-        scope: 'fallback'
-      });
+    // 成功加载后清掉残留的备用源提示；若实际用的不是当前选中的源，给出说明
+    if (!result.source.cached) {
+      hideNotice('fallback');
+      if (result.source.id !== activeSourceId) {
+        showNotice('当前节目源不可用，已切换到「' + result.source.label + '」。可在节目源区域切换。', 'warn', {
+          scope: 'fallback'
+        });
+      }
     }
     if (programNotice) showNotice(programNotice.text, 'warn', programNotice.action);
 
@@ -801,7 +1038,7 @@
   }
 
   function useCacheOrFail(error, opts) {
-    var cached = readCache();
+    var cached = readCache(activeSourceId);
     if (cached) {
       try {
         var items = Parser.parseM3U(cached.text, { baseUrl: cached.url || cached.baseUrl, now: new Date() });
@@ -855,9 +1092,14 @@
     toast('加载失败：' + detail, 'error');
   }
 
-  function readCache() {
+  function cacheKeyFor(sourceId) {
+    return sourceId ? STORAGE_NS + 'playlist:' + sourceId + ':v1' : CACHE_KEY;
+  }
+
+  function readCache(sourceId) {
     try {
-      var raw = localStorage.getItem(CACHE_KEY);
+      var raw = localStorage.getItem(cacheKeyFor(sourceId));
+      if (!raw && sourceId) raw = localStorage.getItem(CACHE_KEY);
       if (!raw) return null;
       var data = JSON.parse(raw);
       if (!data || !data.text) return null;
@@ -867,10 +1109,10 @@
     }
   }
 
-  function saveCache(text, lastModified, baseUrl) {
+  function saveCache(text, lastModified, baseUrl, sourceId) {
     if (!text || text.length > 2 * 1024 * 1024) return;
     try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify({
+      localStorage.setItem(cacheKeyFor(sourceId), JSON.stringify({
         text: text,
         url: baseUrl || (state.source ? state.source.url : location.href),
         savedAt: Date.now(),
@@ -1727,6 +1969,7 @@
   });
 
   applyConfig();
+  renderSourceList();
   updatePager();
   loadPlaylist({});
 })();

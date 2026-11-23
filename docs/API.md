@@ -14,8 +14,12 @@
 | `autoplay=0` | 关闭打开时的自动播放 | `?autoplay=0` |
 | `autoplay=muted` | 静音自动播放 | `?autoplay=muted` |
 | `refresh=<分钟>` | 自动检查更新间隔，默认 30 | `?refresh=60` |
+| `sources=0` | 隐藏节目源区域（深度定制场景） | `?sources=0` |
+| `showSources=0` | 同上，语义更明确 | `?showSources=0` |
 
-`?m3u=` 优先级最高：只要提供它，就会忽略配置里的 `sources`。
+`?m3u=` 优先级最高：只要提供它，就会把它作为当前选中的临时节目源，其余内置源仍可用于切换。
+
+播放器内置三个不可删除的节目源，默认依次为「气象万千 · 浏览器生成」「气象万千 · M3U 文件」「IPTV · M3U 文件」。选中的源失败时会依次尝试后面的源；用户自己添加的源可以删除，名称留空时随机取一个四字成语。
 
 ## 2. 配置对象
 
@@ -34,6 +38,7 @@ window.M3U_PLAYER_CONFIG = {
   timeZone: 'Asia/Shanghai',
   timezoneOffsetMinutes: 480,
   autoplay: 'muted',
+  showSources: true,                // false 可隐藏节目源区域
   sources: [
     { label: '实时生成', provider: 'myProvider' },
     { label: '静态兜底', url: 'https://example.com/playlist.m3u' }
@@ -51,11 +56,11 @@ window.M3U_PLAYER_CONFIG = {
 先加载 SDK，再加载 Provider 脚本，最后加载播放器：
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.4/player/sdk.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.5/player/sdk.js"></script>
 <script src="./my-provider.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.4/player/playlist.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.4/player/vendor/hls.light.min.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.4/player/app.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.5/player/playlist.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.5/player/vendor/hls.light.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.5/player/app.js"></script>
 ```
 
 Provider 脚本：
@@ -106,7 +111,7 @@ iframe.contentWindow.postMessage({ type: 'm3u-player:play', url: 'https://.../a.
 推荐按 tag 锁定版本，避免播放器升级影响业务页面：
 
 ```text
-https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.4/player/app.js
+https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.5/player/app.js
 ```
 
 也可以直接用 Pages 上的最新文件：
