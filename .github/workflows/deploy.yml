@@ -1,4 +1,4 @@
-name: Deploy M3U Player
+name: Deploy 海纳百川-播放器
 
 on:
   push:

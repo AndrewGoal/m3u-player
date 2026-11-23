@@ -1,5 +1,5 @@
 /**
- * 通用 M3U 播放器的 Provider SDK。
+ * 海纳百川-播放器的 Provider SDK。
  * 必须在 provider 脚本和 app.js 之前加载。
  */
 (function (root) {

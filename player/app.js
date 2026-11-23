@@ -1,6 +1,6 @@
 /**
- * 通用 M3U / M3U8 网页播放器
- * 支持 URL 播放列表、自定义 Provider 实时生成，零依赖、无广告。
+ * 海纳百川-播放器
+ * 通用 M3U / M3U8 网页播放器：支持 URL 播放列表、自定义 Provider 实时生成，零依赖、无广告。
  */
 (function () {
   'use strict';
@@ -19,9 +19,9 @@
 
   var CONFIG = Object.assign({
     id: 'default',
-    title: 'M3U 播放器',
+    title: '海纳百川-播放器',
     subtitle: '通用 m3u / m3u8 网页播放器',
-    description: '支持普通视频与 HLS 直播的通用 m3u 播放器，无广告、无统计。',
+    description: '海纳百川-播放器：支持普通视频与 HLS 直播，无广告、无统计。',
     repo: 'https://github.com/AndrewGoal/m3u-player',
     parentOrigin: '',
     refreshMinutes: 30,
