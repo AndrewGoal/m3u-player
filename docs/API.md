@@ -51,11 +51,11 @@ window.M3U_PLAYER_CONFIG = {
 先加载 SDK，再加载 Provider 脚本，最后加载播放器：
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.2/player/sdk.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.3/player/sdk.js"></script>
 <script src="./my-provider.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.2/player/playlist.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.2/player/vendor/hls.light.min.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.2/player/app.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.3/player/playlist.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.3/player/vendor/hls.light.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.3/player/app.js"></script>
 ```
 
 Provider 脚本：
@@ -106,7 +106,7 @@ iframe.contentWindow.postMessage({ type: 'm3u-player:play', url: 'https://.../a.
 推荐按 tag 锁定版本，避免播放器升级影响业务页面：
 
 ```text
-https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.2/player/app.js
+https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.3/player/app.js
 ```
 
 也可以直接用 Pages 上的最新文件：
