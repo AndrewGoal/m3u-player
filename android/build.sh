@@ -90,11 +90,14 @@ mkdir -p "$OUT/compiled" "$OUT/classes" "$OUT/dex" "$OUT/gen"
   --target-sdk-version "$TARGET_SDK"
 
 echo "==> 编译 Java"
+JAVA_SRC=(src/io/github/andrewgoal/m3uplayer/ShellActivity.java "$ACTIVITY_SRC")
+if [ "$VARIANT" = "simple" ]; then
+  while IFS= read -r file; do JAVA_SRC+=("$file"); done < <(find simple/src -name '*.java' ! -name 'SimpleActivity.java')
+fi
 set -o pipefail
 javac -source 8 -target 8 -encoding UTF-8 -bootclasspath "$PLATFORM" \
   -d "$OUT/classes" \
-  src/io/github/andrewgoal/m3uplayer/ShellActivity.java \
-  "$ACTIVITY_SRC" \
+  "${JAVA_SRC[@]}" \
   $(find "$OUT/gen" -name '*.java') 2>&1 \
   | grep -v -e "bootstrap class path" -e "source value 8" -e "target value 8" -e "Xlint:-options" \
   || { echo "javac 失败" >&2; exit 1; }

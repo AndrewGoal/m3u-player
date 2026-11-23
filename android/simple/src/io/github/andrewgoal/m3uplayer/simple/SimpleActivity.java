@@ -1,33 +1,40 @@
 package io.github.andrewgoal.m3uplayer.simple;
 
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.SystemClock;
 import android.view.KeyEvent;
+import android.view.SurfaceView;
+import android.view.View;
+import android.view.ViewGroup;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebView;
+import android.widget.FrameLayout;
 import android.widget.Toast;
 
 import io.github.andrewgoal.m3uplayer.ShellActivity;
 
 /**
- * 简洁版壳：加载一个只有进度条的页面。
+ * 简洁版壳：网页负责菜单 / 进度条 / 按键，画面交给原生 MediaPlayer。
+ *
+ * 布局：SurfaceView（底层，硬解出画） + 透明 WebView（上层，只画界面）。
  *
  *   方向键 / OK 直接进网页处理
  *   菜单键 → 换源层
  *   返回键 → 先关面板；没面板时要连按两次才退出（防误触）
  *   媒体键 → 播放/暂停、上一台/下一台、快进/快退
  *
- * 另外给页面一个 TVShell.openNative(url)：WebView 画面卡住时，
- * 可以把当前频道交给系统里的播放器（VLC 等）用硬解播放。
+ * 网页通过 TVShell.* 控制播放；原生播放器通过 window.__nativeEvent / __nativeTick 回报状态。
  */
 public class SimpleActivity extends ShellActivity {
 
     private static final String DEFAULT_URL = "https://andrewgoal.github.io/m3u-player/simple.html?tv=1";
     private static final long EXIT_WINDOW_MS = 1600;
 
-    /** 优先用装好的本机播放器，避免弹出选择框（遥控器选起来太费劲）。 */
+    /** 原生播放失败时，网页可以退回 <video>；这里优先还是让系统播放器接手。 */
     private static final String[] PLAYER_PACKAGES = {
             "org.videolan.vlc",
             "com.fongmi.android.tv",
@@ -36,6 +43,8 @@ public class SimpleActivity extends ShellActivity {
             "org.xbmc.kodi"
     };
 
+    private SurfaceView surfaceView;
+    private NativePlayer player;
     private long lastBackAt = 0;
 
     @Override
@@ -44,11 +53,109 @@ public class SimpleActivity extends ShellActivity {
     }
 
     @Override
-    protected void onWebViewCreated(WebView view) {
-        view.addJavascriptInterface(new NativeBridge(), "TVShell");
+    protected void onRootCreated(FrameLayout container) {
+        container.setBackgroundColor(Color.TRANSPARENT);
+        getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+
+        surfaceView = new SurfaceView(this);
+        surfaceView.setLayoutParams(new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
+        container.addView(surfaceView);
+
+        player = new NativePlayer(this, surfaceView, new NativePlayer.Listener() {
+            @Override
+            public void onState(final String type, final long value) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        js("window.__nativeEvent && window.__nativeEvent('" + type + "'," + value + ")");
+                    }
+                });
+            }
+
+            @Override
+            public void onTick(final long position, final long duration, final boolean playing) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        js("window.__nativeTick && window.__nativeTick(" + position + "," + duration + ","
+                                + (playing ? "1" : "0") + ")");
+                    }
+                });
+            }
+        });
     }
 
-    private class NativeBridge {
+    @Override
+    protected void onWebViewCreated(WebView view) {
+        view.setBackgroundColor(Color.TRANSPARENT);
+        view.addJavascriptInterface(new Bridge(), "TVShell");
+    }
+
+    /** 网页调用的原生播放接口（JS 线程 → 主线程）。 */
+    private class Bridge {
+        @JavascriptInterface
+        public void playerOpen(final String url) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (player != null) player.open(url);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void playerPlay() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (player != null) player.play();
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void playerPause() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (player != null) player.pause();
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void playerSeek(final long ms) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (player != null) player.seek(ms);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void playerStop() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (player != null) player.stop();
+                }
+            });
+        }
+
+        /** 退回网页自己的 <video> 播放（原生解不了的流）。 */
+        @JavascriptInterface
+        public void playerClose() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (player != null) player.stop();
+                }
+            });
+        }
+
         @JavascriptInterface
         public void openNative(final String url) {
             runOnUiThread(new Runnable() {
@@ -84,6 +191,20 @@ public class SimpleActivity extends ShellActivity {
         } catch (Exception error) {
             Toast.makeText(this, "没有可用的系统播放器", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    @Override
+    protected void onShellPause() {
+        if (player != null) player.pause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (player != null) {
+            player.destroy();
+            player = null;
+        }
+        super.onDestroy();
     }
 
     @Override

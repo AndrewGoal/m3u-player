@@ -61,6 +61,17 @@ public abstract class ShellActivity extends Activity {
     protected void onWebViewCreated(WebView view) {
     }
 
+    /** 根布局刚建好、WebView 还没加进去：子类可以在这里垫一层 SurfaceView。 */
+    protected void onRootCreated(FrameLayout container) {
+    }
+
+    /** Activity 前后台切换，子类用来暂停原生播放器。 */
+    protected void onShellPause() {
+    }
+
+    protected void onShellResume() {
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -72,6 +83,7 @@ public abstract class ShellActivity extends Activity {
         root.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
+        onRootCreated(root);
 
         errorView = new TextView(this);
         errorView.setTextColor(Color.WHITE);
@@ -278,6 +290,7 @@ public abstract class ShellActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
+        onShellPause();
         if (webView != null) {
             js("(function(){var v=document.querySelector('video');if(v&&!v.paused)v.pause();})()");
             webView.onPause();
@@ -287,6 +300,7 @@ public abstract class ShellActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        onShellResume();
         goImmersive();
         if (webView != null) webView.onResume();
     }

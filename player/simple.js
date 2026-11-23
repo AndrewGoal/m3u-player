@@ -72,10 +72,67 @@
     itemIndex: 0,
     hls: null,
     live: false,
-    stalled: false
+    stalled: false,
+    nativePlaying: false,
+    posMs: 0,
+    durationMs: 0
   };
 
+  /* 壳里带原生播放器（SurfaceView + MediaPlayer）时走原生，网页只画界面 */
+  var NATIVE = !!(window.TVShell && typeof window.TVShell.playerOpen === 'function');
+  /* 原生解不了的流（比如伪装扩展名的 fMP4 HLS）记下来，下次直接走网页播放 */
+  var nativeBlacklist = {};
+  var nativeWatchdog = 0;
+
+  function setNativeSurface(on) {
+    // 网页元素（<video>）由 playing 事件决定显不显示，这里只切原生层
+    document.documentElement.classList.toggle('native', !!on);
+  }
+
+  if (NATIVE) setNativeSurface(true);
+
+  function isNativeSurface() {
+    return document.documentElement.classList.contains('native');
+  }
+
+  function prefixOf(url) {
+    try {
+      var parsed = new URL(url);
+      var path = parsed.pathname;
+      var cut = path.lastIndexOf('/');
+      return parsed.origin + (cut > 0 ? path.slice(0, cut + 1) : '/');
+    } catch (err) {
+      return url;
+    }
+  }
+
+  /** 同一个目录下的流往往是一批的（比如整套 fMP4 直播），失败一次就整批走网页 */
+  function isNativeBlocked(url) {
+    if (!url) return false;
+    return !!(nativeBlacklist[url] || nativeBlacklist[prefixOf(url)]);
+  }
+
+  function useNativeFor(item) {
+    if (!NATIVE || !item) return false;
+    return !isNativeBlocked(item.playUrl || item.url);
+  }
+
+  function fallbackToWeb(item, reason) {
+    if (!item) return;
+    clearTimeout(nativeWatchdog);
+    var failedUrl = item.playUrl || item.url;
+    nativeBlacklist[failedUrl] = true;
+    nativeBlacklist[prefixOf(failedUrl)] = true;
+    if (window.TVShell && window.TVShell.playerStop) {
+      try { window.TVShell.playerStop(); } catch (err) { /* 忽略 */ }
+    }
+    setNativeSurface(false);
+    osd(reason || '这个流原生解不了，改用网页播放', 2400);
+    play(item, { force: true, web: true });
+  }
+
   var progressTimer = 0;
+  var bufferTimer = 0;
   var osdTimer = 0;
   var userPressed = false;
 
@@ -258,6 +315,7 @@
     state.items = items;
     state.groups = Parser.groupItems(items);
     state.loadedAt = Date.now();
+    markChannelsDirty();
 
     var kept = opts.keep ? (findByUrl(state.current) || state.current) : null;
     state.current = kept || null;
@@ -330,21 +388,50 @@
     });
   }
 
-  function play(item, options) {
-    var opts = options || {};
-    if (!item) return;
-    var same = state.current && state.current.url === item.url;
-    state.current = item;
-    state.live = false;
+  /* 先判断哪种引擎能放，再决定走原生还是网页，避免 15 秒黑屏后才回退 */
+  var playToken = 0;
+  var engineCache = {};
 
-    if (same && !opts.force) {
-      if (video.paused) attemptPlay();
+  function pickEngine(item) {
+    var url = item.playUrl || item.url;
+    if (!NATIVE || isNativeBlocked(url)) return Promise.resolve('web');
+    if (engineCache[url]) return Promise.resolve(engineCache[url]);
+    if (!isHlsUrl(url)) {
+      engineCache[url] = 'native';
+      return Promise.resolve('native');
+    }
+    // 带 EXT-X-MAP 的 fMP4 直播这台机器的 MediaPlayer 解不了，直接交给 hls.js
+    // 只是猜一下容器类型，别为了探测把起播拖慢
+    return fetchText(url, 1200)
+      .then(function (result) {
+        var engine = /#EXT-X-MAP/i.test(result.text) ? 'web' : 'native';
+        engineCache[url] = engine;
+        return engine;
+      })
+      .catch(function () {
+        return 'native';
+      });
+  }
+
+  function startNative(item) {
+    setNativeSurface(true);
+    try {
+      window.TVShell.playerOpen(item.playUrl || item.url);
+    } catch (err) {
+      fallbackToWeb(item, '原生播放器启动失败，改用网页播放');
       return;
     }
+    clearTimeout(nativeWatchdog);
+    nativeWatchdog = setTimeout(function () {
+      if (state.current && state.current.url === item.url && !state.nativePlaying) {
+        fallbackToWeb(item, '这个流原生解不了，改用网页播放');
+      }
+    }, 6000);
+  }
 
+  function startWeb(item) {
+    setNativeSurface(false);
     stopHls();
-    showSwitching(item.title);
-    state.stalled = false;
 
     if (useHls(item)) {
       var hls = new window.Hls({
@@ -379,13 +466,48 @@
     }
 
     attemptPlay();
-    // 换台过渡层上已经写了台名，等画面出来再弹一次提示
+  }
+
+  function play(item, options) {
+    var opts = options || {};
+    if (!item) return;
+    var same = state.current && state.current.url === item.url;
+    state.current = item;
+    state.live = false;
+
+    if (same && !opts.force) {
+      if (NATIVE && isNativeSurface()) {
+        if (!state.nativePlaying) window.TVShell.playerPlay();
+      } else if (video.paused) {
+        attemptPlay();
+      }
+      return;
+    }
+
+    state.stalled = false;
+    state.posMs = 0;
+    state.durationMs = 0;
+    showSwitching(item.title);
     state.pendingTitle = opts.silent ? '' : item.title;
     if (state.mode === 'channels') renderChannels();
+
+    var token = playToken += 1;
+    var engine = opts.web === true ? Promise.resolve('web') : pickEngine(item);
+    engine.then(function (name) {
+      // 期间又换了台，这次就算了
+      if (token !== playToken) return;
+      if (name === 'native') startNative(item);
+      else startWeb(item);
+    });
   }
 
   function togglePlay() {
     userPressed = true;
+    if (NATIVE) {
+      if (state.nativePlaying) window.TVShell.playerPause();
+      else window.TVShell.playerPlay();
+      return;
+    }
     if (video.muted) {
       video.muted = false;
       video.volume = 1;
@@ -401,6 +523,17 @@
 
   function seekBy(delta) {
     userPressed = true;
+    if (NATIVE) {
+      if (!state.durationMs) {
+        osd('直播流不支持快进', 1400);
+        return;
+      }
+      var nativeTarget = Math.max(0, Math.min(state.durationMs, state.posMs + delta * 1000));
+      state.posMs = nativeTarget;
+      window.TVShell.playerSeek(nativeTarget);
+      showProgress();
+      return;
+    }
     if (!isFinite(video.duration) || video.duration <= 0) {
       osd('直播流不支持快进', 1400);
       return;
@@ -437,6 +570,7 @@
   /** 声音在走但画面帧不增长 → 提示可以用系统播放器。
    *  这台盒子的 WebView 合成管线会掉帧，1080p 直播尤其明显。 */
   function watchHealth() {
+    if (NATIVE) return;
     clearInterval(healthTimer);
     var lastFrames = -1;
     var stuck = 0;
@@ -458,15 +592,17 @@
   /* ---------- 进度条 ---------- */
 
   function updateProgress() {
-    var duration = video.duration;
+    var duration = NATIVE ? state.durationMs : video.duration;
+    var current = NATIVE ? state.posMs : video.currentTime;
     if (!isFinite(duration) || duration <= 0) return;
-    var ratio = Math.min(1, Math.max(0, video.currentTime / duration));
+    var ratio = Math.min(1, Math.max(0, current / duration));
     progressFill.style.width = (ratio * 100).toFixed(2) + '%';
-    progressTime.textContent = clock(video.currentTime) + ' / ' + clock(duration);
+    progressTime.textContent = clock(current / 1000) + ' / ' + clock(duration / 1000);
   }
 
   function showProgress() {
-    if (!isFinite(video.duration) || video.duration <= 0) return;
+    var duration = NATIVE ? state.durationMs : video.duration;
+    if (!isFinite(duration) || duration <= 0) return;
     updateProgress();
     progressEl.classList.add('is-visible');
     clearTimeout(progressTimer);
@@ -603,7 +739,15 @@
       });
   }
 
-  /* ---------- 换台层 ---------- */
+  /* ---------- 换台层 ----------
+     按键只改 class + 滚动，不重建 DOM：这台盒子上重建列表会明显卡一下。 */
+
+  var panel = {
+    groups: [],
+    items: [],
+    groupKey: null,
+    groupsDirty: true
+  };
 
   function groupItems() {
     var group = state.groups[state.groupIndex];
@@ -627,14 +771,16 @@
     state.itemIndex = itemIndex;
   }
 
-  function renderChannels() {
-    var groups = state.groups;
-    var items = groupItems();
-    if (state.groupIndex >= groups.length) state.groupIndex = 0;
-    if (state.itemIndex >= items.length) state.itemIndex = 0;
+  /** 播放列表换了（换源 / 刷新）之后要重建分类列表。 */
+  function markChannelsDirty() {
+    panel.groupsDirty = true;
+    panel.groupKey = null;
+  }
 
+  function buildGroupRows() {
     groupList.replaceChildren();
-    groups.forEach(function (group, index) {
+    panel.groups = [];
+    state.groups.forEach(function (group, index) {
       var row = document.createElement('li');
       var dot = document.createElement('span');
       dot.className = 'dot';
@@ -645,35 +791,39 @@
       sub.className = 'sub';
       sub.textContent = String(group.items.length);
       row.append(dot, label, sub);
-
-      if (state.current && group.name === state.current.group) row.classList.add('is-current');
-      if (index === state.groupIndex) {
-        row.classList.add('is-selected');
-        if (state.column === 'groups') row.classList.add('is-focus');
-      }
+      row.addEventListener('click', function () {
+        if (state.mode !== 'channels') return;
+        state.column = 'groups';
+        state.groupIndex = index;
+        state.itemIndex = 0;
+        panel.groupKey = null;
+        renderChannels();
+      });
       groupList.appendChild(row);
+      panel.groups.push(row);
     });
+    panel.groupsDirty = false;
+  }
 
+  function buildItemRows() {
+    var group = state.groups[state.groupIndex];
+    var key = group ? group.name : '';
+    if (panel.groupKey === key) return;
+    panel.groupKey = key;
     itemList.replaceChildren();
-    items.forEach(function (item, index) {
+    panel.items = [];
+    (group ? group.items : []).forEach(function (item, index) {
       var row = document.createElement('li');
       var label = document.createElement('span');
       label.className = 'label';
       label.textContent = item.title;
       row.appendChild(label);
-
       if (item.duration) {
         var sub = document.createElement('span');
         sub.className = 'sub';
         sub.textContent = clock(item.duration);
         row.appendChild(sub);
       }
-      if (state.current && item.url === state.current.url) row.classList.add('is-playing');
-      if (index === state.itemIndex) {
-        row.classList.add('is-selected');
-        if (state.column === 'items') row.classList.add('is-focus');
-      }
-
       row.addEventListener('click', function () {
         if (state.mode !== 'channels') return;
         state.column = 'items';
@@ -681,19 +831,56 @@
         confirmChannel();
       });
       itemList.appendChild(row);
+      panel.items.push(row);
     });
+    itemList.scrollTop = 0;
+  }
+
+  function scrollToRow(list, row) {
+    if (!row) return;
+    var listRect = list.getBoundingClientRect();
+    var rowRect = row.getBoundingClientRect();
+    var pad = 10;
+    if (rowRect.top < listRect.top + pad) {
+      list.scrollTop -= listRect.top + pad - rowRect.top;
+    } else if (rowRect.bottom > listRect.bottom - pad) {
+      list.scrollTop += rowRect.bottom - (listRect.bottom - pad);
+    }
+  }
+
+  /** 只刷 class，不碰 DOM 结构。 */
+  function paintChannels() {
+    var group = state.groups[state.groupIndex];
+    var current = state.current;
+    var i;
+
+    for (i = 0; i < panel.groups.length; i += 1) {
+      var groupRow = panel.groups[i];
+      groupRow.classList.toggle('is-selected', i === state.groupIndex);
+      groupRow.classList.toggle('is-focus', i === state.groupIndex && state.column === 'groups');
+      groupRow.classList.toggle('is-current', !!(current && current.group === state.groups[i].name));
+    }
+
+    for (i = 0; i < panel.items.length; i += 1) {
+      var itemRow = panel.items[i];
+      var item = group ? group.items[i] : null;
+      itemRow.classList.toggle('is-selected', i === state.itemIndex);
+      itemRow.classList.toggle('is-focus', i === state.itemIndex && state.column === 'items');
+      itemRow.classList.toggle('is-playing', !!(current && item && current.url === item.url));
+    }
 
     groupList.classList.toggle('is-focus', state.column === 'groups');
     itemList.classList.toggle('is-focus', state.column === 'items');
-    channelTitle.textContent = '换台 · ' + (items.length ? groups[state.groupIndex].name : '—');
+    channelTitle.textContent = '换台 · ' + (group ? group.name : '—');
 
-    scrollRow(groupList, state.groupIndex);
-    scrollRow(itemList, state.itemIndex);
+    scrollToRow(groupList, panel.groups[state.groupIndex]);
+    scrollToRow(itemList, panel.items[state.itemIndex]);
   }
 
-  function scrollRow(list, index) {
-    var row = list.children[index];
-    if (row) row.scrollIntoView({ block: 'nearest' });
+  function renderChannels() {
+    if (panel.groupsDirty) buildGroupRows();
+    buildItemRows();
+    paintChannels();
   }
 
   function openChannels() {
@@ -705,6 +892,7 @@
     state.mode = 'channels';
     state.column = 'items';
     syncSelection();
+    panel.groupKey = null;
     renderChannels();
     channelPanel.classList.add('is-visible');
   }
@@ -715,18 +903,20 @@
       if (!count) return;
       state.groupIndex = (state.groupIndex + delta + count) % count;
       state.itemIndex = 0;
-    } else {
-      var list = groupItems();
-      if (!list.length) return;
-      state.itemIndex = (state.itemIndex + delta + list.length) % list.length;
+      panel.groupKey = null;
+      renderChannels();
+      return;
     }
-    renderChannels();
+    var list = groupItems();
+    if (!list.length) return;
+    state.itemIndex = (state.itemIndex + delta + list.length) % list.length;
+    paintChannels();
   }
 
   function confirmChannel() {
     if (state.column === 'groups') {
       state.column = 'items';
-      renderChannels();
+      paintChannels();
       return;
     }
     var item = groupItems()[state.itemIndex];
@@ -796,11 +986,11 @@
         return true;
       case 37:
         state.column = 'groups';
-        renderChannels();
+        paintChannels();
         return true;
       case 39:
         state.column = 'items';
-        renderChannels();
+        paintChannels();
         return true;
       case 13:
       case 23:
@@ -873,6 +1063,7 @@
     progressEl.classList.remove('is-visible');
   });
   video.addEventListener('playing', function () {
+    document.body.classList.add('has-video');
     hideSwitching();
     video.volume = 1;
     watchHealth();
@@ -891,6 +1082,64 @@
     osd('播放失败，按上下键换台', 2500);
   });
 
+  /* ---------- 原生播放器 → 页面 ---------- */
+
+  window.__nativeEvent = function (type, value) {
+    switch (type) {
+      case 'ready':
+        state.durationMs = value || 0;
+        clearTimeout(nativeWatchdog);
+        break;
+      case 'playing':
+        state.nativePlaying = true;
+        clearTimeout(bufferTimer);
+        hideSwitching();
+        if (state.pendingTitle) {
+          osd(state.pendingTitle, 1600);
+          state.pendingTitle = '';
+        }
+        break;
+      case 'paused':
+        state.nativePlaying = false;
+        osd('❚❚ 暂停', 900);
+        break;
+      case 'ended':
+        state.nativePlaying = false;
+        step(1);
+        break;
+      case 'buffering':
+        if (value) {
+          clearTimeout(bufferTimer);
+          bufferTimer = setTimeout(function () {
+            if (state.nativePlaying) showSwitching('正在缓冲…');
+          }, 1200);
+        } else {
+          clearTimeout(bufferTimer);
+          if (switchingText.textContent === '正在缓冲…') hideSwitching();
+        }
+        break;
+      case 'error':
+        state.nativePlaying = false;
+        clearTimeout(nativeWatchdog);
+        hideSwitching();
+        if (state.current && useNativeFor(state.current)) {
+          fallbackToWeb(state.current, '这个流原生解不了，改用网页播放');
+        } else {
+          osd('这个频道播不了 · 上下键换台', 3000);
+        }
+        break;
+      default:
+        break;
+    }
+  };
+
+  window.__nativeTick = function (position, duration, playing) {
+    state.posMs = position || 0;
+    if (duration) state.durationMs = duration;
+    state.nativePlaying = !!playing;
+    if (progressEl.classList.contains('is-visible')) updateProgress();
+  };
+
   document.addEventListener('contextmenu', function (event) { event.preventDefault(); });
   window.addEventListener('keydown', onKeyDown, true);
 
@@ -902,6 +1151,7 @@
     });
 
     video.volume = 1;
+    showSwitching('正在加载…');
 
     state.sources = loadSources();
     // ?m3u= 指定的临时源优先级最高（和完整版一致）
