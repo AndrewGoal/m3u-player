@@ -23,7 +23,6 @@
   /* 和完整版共用同一套本地存储命名空间：完整版里加过的源，简洁版也能选 */
   var STORAGE_NS = 'm3u-player:default:';
   var SOURCES_KEY = STORAGE_NS + 'sources:v1';
-  var ACTIVE_SOURCE_KEY = STORAGE_NS + 'active-source:v1';
 
   var WEATHER_M3U_URL = 'https://andrewgoal.github.io/cctv_weather_forecasting_m3u/cctv_weather_forecasting.m3u';
   var IPTV_M3U_URL = 'https://iptv.yang-1989.xyz/playlist.m3u';
@@ -115,23 +114,6 @@
 
   function writeJSON(key, value) {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch (err) { /* 忽略 */ }
-  }
-
-  function readActiveId() {
-    try {
-      var raw = localStorage.getItem(ACTIVE_SOURCE_KEY);
-      if (!raw) return '';
-      if (raw.charAt(0) === '"') {
-        try { return JSON.parse(raw); } catch (err) { return ''; }
-      }
-      return raw;
-    } catch (err) {
-      return '';
-    }
-  }
-
-  function writeActiveId(id) {
-    try { localStorage.setItem(ACTIVE_SOURCE_KEY, id); } catch (err) { /* 忽略 */ }
   }
 
   function clock(seconds) {
@@ -578,7 +560,6 @@
       .then(function (result) {
         var items = parseItems(result);
         state.activeId = source.id;
-        writeActiveId(source.id);
         state.loading = false;
         sourcePanel.classList.remove('is-loading');
         endSourceLoading();
@@ -1005,8 +986,10 @@
     showSwitching('正在加载…');
 
     state.sources = loadSources();
-    state.activeId = params.get('m3u') ? 'custom:url' : readActiveId();
-    if (!activeSource()) state.activeId = state.sources[0] ? state.sources[0].id : '';
+    // 每次启动都从第一个源开始（?m3u= 时优先临时源），不记忆上次的
+    state.activeId = params.get('m3u')
+      ? 'custom:url'
+      : (state.sources[0] ? state.sources[0].id : '');
 
     renderSources();
     var source = activeSource();
@@ -1019,7 +1002,6 @@
     fetchWithFallback(source)
       .then(function (result) {
         state.activeId = result.source.id;
-        writeActiveId(result.source.id);
         applyItems(result.source, result.items, { autoplay: true });
       })
       .catch(function (error) {
