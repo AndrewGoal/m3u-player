@@ -277,10 +277,18 @@
 
   /* ---------- 换台过渡层 ---------- */
 
+  var switchingTimer = 0;
+
   function showSwitching(text) {
     if (!switchingEl) return;
     switchingText.textContent = text || '正在换台…';
     switchingEl.hidden = false;
+    clearTimeout(switchingTimer);
+    switchingTimer = setTimeout(function () {
+      if (!switchingEl || switchingEl.hidden) return;
+      switchingText.textContent = '这个源一直没有画面，换一个台试试';
+      osd('这个源没有响应 · 上下键换台，或菜单里用系统播放器', 5000);
+    }, 15000);
   }
 
   function hideSwitching() {
