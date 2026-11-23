@@ -114,7 +114,6 @@
   var openBtn = $('openBtn');
   var shareBtn = $('shareBtn');
   var downloadLink = $('downloadLink');
-  var sourceLink = $('sourceLink');
   var noticeEl = $('notice');
   var noticeText = $('noticeText');
   var noticeAction = $('noticeAction');
@@ -751,7 +750,7 @@
     }
 
     updateMeta();
-    updateSourceLinks();
+    updateDownloadLink();
     updateStatus();
 
     if (!firstLoad) {
@@ -1348,7 +1347,7 @@
     state.blobUrl = null;
   }
 
-  function updateSourceLinks() {
+  function updateDownloadLink() {
     if (!state.source) return;
     revokeBlobUrl();
 
@@ -1363,14 +1362,10 @@
     }
 
     if (!url) {
-      sourceLink.hidden = true;
       downloadLink.hidden = true;
       return;
     }
 
-    sourceLink.hidden = false;
-    sourceLink.href = url;
-    sourceLink.textContent = 'm3u 地址 ↗';
     downloadLink.hidden = false;
     downloadLink.href = url;
     downloadLink.download = 'playlist.m3u';

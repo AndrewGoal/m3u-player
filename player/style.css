@@ -743,15 +743,6 @@ a:hover {
   text-align: center;
 }
 
-.source-link {
-  color: var(--faint);
-  white-space: nowrap;
-}
-
-.source-link:hover {
-  color: var(--accent-strong);
-}
-
 /* ---------- 侧栏 ---------- */
 
 .sidebar-head {
