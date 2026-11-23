@@ -37,33 +37,11 @@ body {
 }
 
 /* ---------- 原生播放模式 ----------
-   壳里用 SurfaceView + MediaPlayer 出画面，WebView 是透明的，只画界面。 */
+   画面由壳里的 ExoPlayer 画在 SurfaceView 上，WebView 是透明的，只负责界面。 */
 
-html.native,
-html.native body {
+html,
+body {
   background: transparent;
-}
-
-html.native #video {
-  display: none;
-}
-
-/* ---------- 视频 ---------- */
-
-#video {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  background: #000;
-  object-fit: contain;
-  display: block;
-  /* 没有画面之前（启动、换台）藏起来，避免 WebView 画出灰色的播放占位图 */
-  visibility: hidden;
-}
-
-body.has-video #video {
-  visibility: visible;
 }
 
 /* ---------- 换台过渡层 ---------- */

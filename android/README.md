@@ -14,12 +14,14 @@
 - 允许无手势自动播放（电视上没法先点一下）
 - 遥控器播放/暂停/快进/上一台/下一台转发给网页
 - HTML5 视频全屏交给 `WebChromeClient` 渲染
-- 简洁版额外提供 `TVShell.openNative(url)`：把卡顿的频道交给机上的 VLC / 影视仓 / Kodi（按包名逐个试，避免弹选择框），返回键做了连按两次退出
+- 简洁版的画面/声音走 **ExoPlayer（Media3）**：SurfaceView 硬解，TS 分片和 fMP4 的 HLS 都吃；网页那层 `<video>` 和 hls.js 已经删掉，播不了只提示换台
+- 简洁版额外提供 `TVShell.openNative(url)`：把播不了的频道交给机上的 VLC / 影视仓 / Kodi（按包名逐个试，避免弹选择框），返回键做了连按两次退出
 
 ## 依赖
 
 - JDK 17（build-tools 34 的 d8 在 JDK 21+ 会崩，脚本会自动切到 17）
 - Android SDK：`build-tools;34.0.0` + `platforms;android-34`
+- 简洁版会用到 ExoPlayer：`./fetch-deps.sh` 自动把 14 个 jar 抓到 `vendor/`（约 14MB，不进仓库），`build.sh` 首次构建会自动调用
 
 ```bash
 sdkmanager "build-tools;34.0.0" "platforms;android-34"

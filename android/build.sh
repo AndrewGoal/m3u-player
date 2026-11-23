@@ -75,15 +75,38 @@ for tool in aapt2 d8 zipalign apksigner; do
 done
 [ -f "$PLATFORM" ] || { echo "缺少 android.jar：$PLATFORM" >&2; exit 1; }
 
+# 简洁版要 ExoPlayer（Media3），依赖在 vendor/ 里，首次构建自动下载
+VENDOR_CP=""
+VENDOR_RES=()
+if [ "$VARIANT" = "simple" ]; then
+  if [ ! -d vendor/jars ] || [ -z "$(ls -A vendor/jars 2>/dev/null)" ]; then
+    echo "==> 拉取 ExoPlayer 依赖"
+    ./fetch-deps.sh
+  fi
+  VENDOR_CP=$(ls vendor/jars/*.jar | tr '\n' ':')
+  if [ -d vendor/res ]; then
+    for dir in vendor/res/*/; do
+      [ -d "$dir" ] && VENDOR_RES+=("${dir%/}")
+    done
+  fi
+fi
+
 echo "==> 资源（$VARIANT）"
 rm -rf "$OUT"
 mkdir -p "$OUT/compiled" "$OUT/classes" "$OUT/dex" "$OUT/gen"
 "$BUILD_TOOLS/aapt2" compile --dir "$RES_DIR" -o "$OUT/compiled/res.zip"
+RES_ARGS=(-R "$OUT/compiled/res.zip")
+for dir in "${VENDOR_RES[@]:-}"; do
+  [ -n "$dir" ] || continue
+  name=$(basename "$dir")
+  "$BUILD_TOOLS/aapt2" compile --dir "$dir" -o "$OUT/compiled/$name.zip"
+  RES_ARGS+=(-R "$OUT/compiled/$name.zip")
+done
 "$BUILD_TOOLS/aapt2" link \
   -o "$OUT/base.apk" \
   -I "$PLATFORM" \
   --manifest "$MANIFEST" \
-  -R "$OUT/compiled/res.zip" \
+  "${RES_ARGS[@]}" \
   --java "$OUT/gen" \
   --auto-add-overlay \
   --min-sdk-version "$MIN_SDK" \
@@ -96,6 +119,7 @@ if [ "$VARIANT" = "simple" ]; then
 fi
 set -o pipefail
 javac -source 8 -target 8 -encoding UTF-8 -bootclasspath "$PLATFORM" \
+  ${VENDOR_CP:+-cp "$VENDOR_CP"} \
   -d "$OUT/classes" \
   "${JAVA_SRC[@]}" \
   $(find "$OUT/gen" -name '*.java') 2>&1 \
@@ -103,8 +127,11 @@ javac -source 8 -target 8 -encoding UTF-8 -bootclasspath "$PLATFORM" \
   || { echo "javac 失败" >&2; exit 1; }
 
 echo "==> dex"
-"$BUILD_TOOLS/d8" --min-api "$MIN_SDK" --lib "$PLATFORM" --output "$OUT/dex" \
-  $(find "$OUT/classes" -name '*.class')
+DEX_INPUTS=($(find "$OUT/classes" -name '*.class'))
+if [ "$VARIANT" = "simple" ]; then
+  DEX_INPUTS+=(vendor/jars/*.jar)
+fi
+"$BUILD_TOOLS/d8" --min-api "$MIN_SDK" --lib "$PLATFORM" --output "$OUT/dex" "${DEX_INPUTS[@]}"
 cp "$OUT/base.apk" "$OUT/unsigned.apk"
 (cd "$OUT/dex" && zip -q ../unsigned.apk classes.dex)
 

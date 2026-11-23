@@ -96,11 +96,11 @@ public class SimpleActivity extends ShellActivity {
     /** 网页调用的原生播放接口（JS 线程 → 主线程）。 */
     private class Bridge {
         @JavascriptInterface
-        public void playerOpen(final String url) {
+        public void playerOpen(final String url, final boolean hls) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    if (player != null) player.open(url);
+                    if (player != null) player.open(url, hls);
                 }
             });
         }
@@ -137,17 +137,6 @@ public class SimpleActivity extends ShellActivity {
 
         @JavascriptInterface
         public void playerStop() {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    if (player != null) player.stop();
-                }
-            });
-        }
-
-        /** 退回网页自己的 <video> 播放（原生解不了的流）。 */
-        @JavascriptInterface
-        public void playerClose() {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
