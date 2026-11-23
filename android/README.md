@@ -82,6 +82,7 @@ adb logcat | grep M3UPlayerTV
 
 ## 说明
 
+- 简洁页的 `simple.css` / `simple.js` 在 `simple.html` 里带了 `?v=` 版本号：改完前端记得把版本号加一，否则盒子上的 WebView 会继续用 HTTP 缓存里的旧文件
 - 包里没有打包网页资源，断网时靠页面自己的 Service Worker 缓存兜底；要完全离线可以把 `../index.html`、`../player`、`../icons` 复制进 `assets/` 并改成 `file:///android_asset/index.html`，但那样每次改前端都要重装。
 - `usesCleartextTraffic="true"`：部分老 IPTV 源还是 `http://`。
 - 签名密钥不进仓库。换机器构建时把 `tv.jks` 一起带过去，否则只能卸载重装。
