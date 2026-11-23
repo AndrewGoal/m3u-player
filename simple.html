@@ -10,9 +10,18 @@
   <meta name="referrer" content="no-referrer">
 
   <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
-  <link rel="stylesheet" href="player/simple.css?v=11">
+  <link rel="stylesheet" href="player/simple.css?v=15">
 </head>
 <body>
+  <!-- 进度条：只在按左右键时出现一会儿 -->
+  <div class="progress" id="progress" hidden>
+    <div class="progress-track"><span class="progress-fill" id="progressFill"></span></div>
+    <div class="progress-time" id="progressTime">00:00 / 00:00</div>
+  </div>
+
+  <!-- 状态提示 -->
+  <div class="osd" id="osd" hidden></div>
+
   <!-- 换台过渡层：盖住 WebView 自带的灰色播放占位图 -->
   <div class="switching" id="switching" hidden>
     <span class="spinner" aria-hidden="true"></span>
@@ -31,18 +40,18 @@
           <circle cx="85" cy="38" r="13" fill="#2b313b" stroke="#55606f" stroke-width="1.5"/>
           <path d="M85 31v7" stroke="#e05a5a" stroke-width="2.4" stroke-linecap="round"/>
           <circle cx="85" cy="38" r="9.5" fill="none" stroke="#e05a5a" stroke-width="2.4" stroke-dasharray="17 43" transform="rotate(-90 85 38)"/>
-          <rect x="49" y="62" width="26" height="22" rx="5" fill="#46b6ff" stroke="#7fd0ff" stroke-width="1.5"/>
+          <rect class="svg-menu" x="49" y="62" width="26" height="22" rx="5" fill="#46b6ff" stroke="#7fd0ff" stroke-width="1.5"/>
           <path d="M55 69h14M55 73h14M55 77h14" stroke="#04202f" stroke-width="2.2" stroke-linecap="round"/>
           <circle cx="118" cy="73" r="13" fill="#2b313b" stroke="#55606f" stroke-width="1.5"/>
           <path d="M118 66l6 8h-12z" fill="#9fb0c6"/>
           <circle cx="85" cy="150" r="55" fill="#1b1f27" stroke="#48525f" stroke-width="2"/>
-          <polygon points="85,104 95,120 75,120" fill="#46b6ff"/>
-          <polygon points="85,196 95,180 75,180" fill="#46b6ff"/>
-          <polygon points="42,150 58,140 58,160" fill="#46b6ff"/>
-          <polygon points="128,150 112,140 112,160" fill="#46b6ff"/>
-          <circle cx="85" cy="150" r="22" fill="#46b6ff"/>
-          <text x="85" y="156" text-anchor="middle" font-size="15" font-weight="700" fill="#04202f">OK</text>
-          <rect x="53" y="212" width="64" height="24" rx="12" fill="#46b6ff"/>
+          <polygon class="svg-up" points="85,104 95,120 75,120" fill="#46b6ff"/>
+          <polygon class="svg-down" points="85,196 95,180 75,180" fill="#46b6ff"/>
+          <polygon class="svg-left" points="42,150 58,140 58,160" fill="#46b6ff"/>
+          <polygon class="svg-right" points="128,150 112,140 112,160" fill="#46b6ff"/>
+          <circle class="svg-ok" cx="85" cy="150" r="22" fill="#46b6ff"/>
+          <text class="svg-ok-text" x="85" y="156" text-anchor="middle" font-size="15" font-weight="700" fill="#04202f">OK</text>
+          <rect class="svg-back" x="53" y="212" width="64" height="24" rx="12" fill="#46b6ff"/>
           <path d="M97 224H75m6-6-7 6 7 6" fill="none" stroke="#04202f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
           <circle cx="62" cy="262" r="14" fill="#2b313b" stroke="#55606f" stroke-width="1.5"/>
           <path d="M56 262h12" stroke="#9fb0c6" stroke-width="2.2" stroke-linecap="round"/>
@@ -56,22 +65,14 @@
           <div class="pause-key"><span class="key-glyph">☰</span><span>换源 · 换台</span></div>
           <div class="pause-key"><span class="key-glyph">⏎</span><span>连按两次退出</span></div>
         </div>
-      </div>
-      <div class="pause-notes" id="infoNotes">
-        <div class="pause-note"><kbd>菜单</kbd><span>换源 · 换台</span></div>
-        <div class="pause-note"><kbd>返回</kbd><span>连按两次退出</span></div>
+        <div class="pause-keys pause-keys-error" id="infoNotes">
+          <div class="pause-key"><span class="key-glyph">▲ ▼</span><span>换台</span></div>
+          <div class="pause-key"><span class="key-glyph">☰</span><span>换源 · 换台</span></div>
+          <div class="pause-key"><span class="key-glyph">⏎</span><span>连按两次退出</span></div>
+        </div>
       </div>
     </div>
   </div>
-
-  <!-- 进度条：只在按左右键时出现一会儿 -->
-  <div class="progress" id="progress" hidden>
-    <div class="progress-track"><span class="progress-fill" id="progressFill"></span></div>
-    <div class="progress-time" id="progressTime">00:00 / 00:00</div>
-  </div>
-
-  <!-- 状态提示：换台、暂停等，短暂出现 -->
-  <div class="osd" id="osd" hidden></div>
 
   <!-- 换源层：居中，半透明 -->
   <div class="panel sources" id="sourcePanel" hidden aria-label="选择节目源">
@@ -96,7 +97,7 @@
 
   <script src="player/sdk.js"></script>
   <script src="https://andrewgoal.github.io/cctv_weather_forecasting_m3u/weather-provider.js"></script>
-  <script src="player/playlist.js?v=4"></script>
-  <script src="player/simple.js?v=4"></script>
+  <script src="player/playlist.js?v=15"></script>
+  <script src="player/simple.js?v=15"></script>
 </body>
 </html>

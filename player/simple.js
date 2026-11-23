@@ -69,6 +69,7 @@
     pendingTitle: '',
     bandwidth: 0,
     infoKind: '',
+    infoText: '',
     mode: 'video',        // video | sources | channels
     column: 'items',      // groups | items
     sourceIndex: 0,
@@ -187,19 +188,38 @@
   }
 
   /** 常驻信息层：暂停、播不了都用它，直到用户操作。 */
+  function renderInfo() {
+    if (!state.infoKind) {
+      infoEl.hidden = true;
+      return;
+    }
+    infoTitle.textContent = state.current ? state.current.title : '';
+    infoSub.textContent = state.infoText || '';
+    infoSub.classList.toggle('is-error', state.infoKind === 'error');
+    infoEl.classList.toggle('is-error-mode', state.infoKind === 'error');
+    infoEl.hidden = false;
+  }
+
   function showInfo(kind, text) {
     if (!state.current) return;
     state.infoKind = kind;
-    infoTitle.textContent = state.current.title;
-    infoSub.textContent = text || '';
-    infoSub.classList.toggle('is-error', kind === 'error');
-    infoEl.classList.toggle('is-error-mode', kind === 'error');
-    infoEl.hidden = false;
+    state.infoText = text || '';
+    renderInfo();
   }
 
   function hideInfo() {
     state.infoKind = '';
+    state.infoText = '';
     infoEl.hidden = true;
+  }
+
+  /** 打开别的界面时先让位，但不丢状态 */
+  function hideInfoVisual() {
+    infoEl.hidden = true;
+  }
+
+  function restoreInfo() {
+    if (state.infoKind) renderInfo();
   }
 
   function isHlsUrl(url) {
@@ -498,7 +518,7 @@
 
   function openSources() {
     osd('');
-    hideInfo();
+    hideInfoVisual();
     hideSwitching();
     state.mode = 'sources';
     state.sourceIndex = Math.max(0, state.sources.indexOf(activeSource()));
@@ -513,6 +533,8 @@
     state.mode = 'video';
     sourcePanel.classList.remove('is-visible');
     channelPanel.classList.remove('is-visible');
+    // 关掉面板后，如果还停着/还播不了，把信息层放回来
+    restoreInfo();
   }
 
   function selectSource() {
@@ -685,7 +707,7 @@
   }
 
   function openChannels() {
-    hideInfo();
+    hideInfoVisual();
     hideSwitching();
     if (!state.groups.length) {
       osd('还没有节目', 1600);
@@ -724,6 +746,11 @@
     }
     var item = groupItems()[state.itemIndex];
     if (!item) return;
+    // 选中的就是当前正在播的台：没必要重新连接
+    if (state.current && item.url === state.current.url && state.infoKind !== 'error') {
+      closePanels();
+      return;
+    }
     closePanels();
     play(item, { force: true });
   }

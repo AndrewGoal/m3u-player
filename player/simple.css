@@ -110,8 +110,8 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  max-width: 88vw;
-  padding: 26px 40px 24px;
+  max-width: 90vw;
+  padding: 30px 46px 28px;
   border-radius: 22px;
   border: 1px solid var(--line-strong);
   background: rgba(5, 9, 16, 0.88);
@@ -124,26 +124,31 @@ body {
   box-shadow: none;
 }
 
-.pause.is-error-mode .pause-body {
-  display: block;
-  border-top: 0;
-  margin-top: 0;
-  padding-top: 0;
+.pause .pause-keys-error {
+  display: none;
 }
 
-.pause.is-error-mode .remote,
 .pause.is-error-mode .pause-keys {
   display: none;
 }
 
-/* 播不了时只保留两条提示：菜单、返回 */
-.pause-notes {
-  display: none;
-  gap: 14px 28px;
-  margin-top: 18px;
-  padding-top: 18px;
-  border-top: 1px solid var(--line);
+.pause.is-error-mode .pause-keys.pause-keys-error {
+  display: flex;
 }
+
+/* 播不了时 OK / 左右按了也只是提示，画成不可用 */
+.pause.is-error-mode .svg-ok,
+.pause.is-error-mode .svg-left,
+.pause.is-error-mode .svg-right {
+  fill: #39424f;
+}
+
+.pause.is-error-mode .svg-ok-text {
+  fill: #7f93b0;
+}
+
+/* 播不了时只保留两条提示：菜单、返回 */
+
 
 .pause.is-error-mode .pause-notes {
   display: flex;
@@ -176,8 +181,8 @@ body {
 }
 
 .pause-title {
-  max-width: 78vw;
-  font-size: 38px;
+  max-width: 80vw;
+  font-size: 42px;
   font-weight: 700;
   text-align: center;
   overflow: hidden;
@@ -186,8 +191,8 @@ body {
 }
 
 .pause-sub {
-  max-width: 76vw;
-  font-size: 22px;
+  max-width: 78vw;
+  font-size: 24px;
   color: var(--muted);
   letter-spacing: 0.06em;
   text-align: center;
@@ -200,15 +205,15 @@ body {
 .pause-body {
   display: flex;
   align-items: center;
-  gap: 32px;
-  margin-top: 14px;
-  padding-top: 16px;
+  gap: 38px;
+  margin-top: 16px;
+  padding-top: 18px;
   border-top: 1px solid var(--line);
 }
 
 .remote {
   flex: none;
-  width: 118px;
+  width: 134px;
   height: auto;
   filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.45));
 }
@@ -216,14 +221,14 @@ body {
 .pause-keys {
   display: flex;
   flex-direction: column;
-  gap: 13px;
+  gap: 15px;
 }
 
 .pause-key {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 23px;
+  font-size: 25px;
   color: #e2edfb;
 }
 
@@ -231,14 +236,14 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 62px;
-  height: 42px;
-  padding: 0 13px;
-  border-radius: 10px;
+  min-width: 66px;
+  height: 46px;
+  padding: 0 14px;
+  border-radius: 11px;
   border: 1px solid rgba(70, 182, 255, 0.5);
   background: rgba(70, 182, 255, 0.16);
   color: #cfe9ff;
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 600;
 }
 
