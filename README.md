@@ -21,7 +21,7 @@
 ## 两个示例
 
 - [气象万千](https://andrewgoal.github.io/m3u-player/examples/weather.html)：Provider 在浏览器里实时抓取天气网/齐鲁网数据生成 M3U，失败回退静态文件。
-- [IPTV 试播](https://andrewgoal.github.io/m3u-player/examples/iptv.html)：直接用 `?m3u=` 加载 `iptv.yang-1989.xyz/playlist.m3u`。
+- [IPTV 试播](https://andrewgoal.github.io/m3u-player/examples/iptv.html)：直接用 `?m3u=` 加载 `iptv.yang-1989.xyz/playlist.m3u`，来源：https://yang-1989.eu.org/。
 
 ## 特性
 
