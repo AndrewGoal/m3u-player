@@ -172,9 +172,8 @@
 
   function formatSpeed(bytesPerSecond) {
     if (!bytesPerSecond || bytesPerSecond < 1) return '';
-    if (bytesPerSecond >= 1024 * 1024) return (bytesPerSecond / 1048576).toFixed(1) + ' MB/s';
-    if (bytesPerSecond >= 1024) return (bytesPerSecond / 1024).toFixed(0) + ' KB/s';
-    return bytesPerSecond + ' B/s';
+    var mbs = bytesPerSecond / 1048576;
+    return (mbs < 0.1 ? 0.1 : mbs).toFixed(1) + ' MB/s';
   }
 
   function paintSpeed() {
@@ -193,6 +192,7 @@
     infoTitle.textContent = state.current.title;
     infoSub.textContent = text || '';
     infoSub.classList.toggle('is-error', kind === 'error');
+    infoEl.classList.toggle('is-error-mode', kind === 'error');
     infoEl.hidden = false;
   }
 
@@ -727,6 +727,17 @@
 
   /* ---------- 按键 ---------- */
 
+  /** 播不了的时候：OK / 左右只给一句提示，层不关；上下键照常换台。 */
+  function errorKeys(code) {
+    if (state.infoKind !== 'error') return false;
+    if (code === 38 || code === 40) return false;
+    if (code === 13 || code === 23 || code === 37 || code === 39) {
+      osd('这个频道播不了 · 上下键换台', 2200);
+      return true;
+    }
+    return true;
+  }
+
   function videoKey(code) {
     switch (code) {
       case 13:
@@ -812,7 +823,7 @@
     } else if (code === 4 || code === 27) {
       handled = window.__simpleBack();
     } else if (state.mode === 'video') {
-      handled = videoKey(code);
+      handled = errorKeys(code) || videoKey(code);
     } else if (state.mode === 'sources') {
       handled = sourcesKey(code);
     } else {
@@ -823,7 +834,6 @@
       event.preventDefault();
       event.stopPropagation();
     }
-    if (state.infoKind === 'error') hideInfo();
   }
 
   window.__simpleBack = function () {

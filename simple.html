@@ -10,7 +10,7 @@
   <meta name="referrer" content="no-referrer">
 
   <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
-  <link rel="stylesheet" href="player/simple.css?v=6">
+  <link rel="stylesheet" href="player/simple.css?v=7">
 </head>
 <body>
   <!-- 换台过渡层：盖住 WebView 自带的灰色播放占位图 -->
@@ -22,14 +22,16 @@
 
   <!-- 信息层：暂停 / 播不了，都常驻到用户操作 -->
   <div class="pause" id="infoPanel" hidden>
-    <div class="pause-title" id="infoTitle">—</div>
-    <div class="pause-sub" id="infoSub">已暂停</div>
-    <div class="pause-keys">
-      <div class="pause-key"><kbd>OK</kbd><span>播放 / 暂停</span></div>
-      <div class="pause-key"><kbd>◀ ▶</kbd><span>快退 / 快进 10 秒</span></div>
-      <div class="pause-key"><kbd>▲ ▼</kbd><span>上一个 / 下一个</span></div>
-      <div class="pause-key"><kbd>菜单</kbd><span>换源 · 换台</span></div>
-      <div class="pause-key"><kbd>返回</kbd><span>连按两次退出</span></div>
+    <div class="pause-card">
+      <div class="pause-title" id="infoTitle">—</div>
+      <div class="pause-sub" id="infoSub">已暂停</div>
+      <div class="pause-keys" id="infoKeys">
+        <div class="pause-key"><kbd>OK</kbd><span>播放 / 暂停</span></div>
+        <div class="pause-key"><kbd>◀ ▶</kbd><span>快退 / 快进 10 秒</span></div>
+        <div class="pause-key"><kbd>▲ ▼</kbd><span>上一个 / 下一个</span></div>
+        <div class="pause-key"><kbd>菜单</kbd><span>换源 · 换台</span></div>
+        <div class="pause-key"><kbd>返回</kbd><span>连按两次退出</span></div>
+      </div>
     </div>
   </div>
 
