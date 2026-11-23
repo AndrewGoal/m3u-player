@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>示例：气象万千 · 通用 M3U 播放器</title>
+  <meta name="referrer" content="no-referrer">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1/player/style.css">
+</head>
+<body>
+  <p><a href="../">← 返回播放器说明</a> · 这是「Provider 实时生成 + 静态兜底」示例。</p>
+
+  <script>
+    window.M3U_PLAYER_CONFIG = {
+      id: 'example-weather',
+      title: '气象万千 · 天气预报表',
+      subtitle: 'CCTV / 山东 / 农业气象 · 浏览器实时生成',
+      description: 'CCTV 天气预报、气象分析与山东天气预报 m3u 在线播放器。',
+      repo: 'https://github.com/AndrewGoal/cctv_weather_forecasting_m3u',
+      refreshMinutes: 30,
+      timeZone: 'Asia/Shanghai',
+      timezoneOffsetMinutes: 480,
+      autoplay: 'muted',
+      sources: [
+        { label: '浏览器实时生成', provider: 'weatherLive' },
+        { label: '静态兜底', url: 'https://andrewgoal.github.io/cctv_weather_forecasting_m3u/cctv_weather_forecasting.m3u' }
+      ]
+    };
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1/player/sdk.js"></script>
+  <script src="https://andrewgoal.github.io/cctv_weather_forecasting_m3u/weather-provider.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1/player/playlist.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1/player/vendor/hls.light.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1/player/app.js"></script>
+</body>
+</html>

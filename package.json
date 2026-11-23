@@ -1,0 +1,10 @@
+{
+  "name": "m3u-player",
+  "version": "1.0.0",
+  "private": true,
+  "description": "通用 M3U / M3U8 网页播放器：支持 URL、Provider 实时生成与 HLS",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "license": "GPL-3.0"
+}

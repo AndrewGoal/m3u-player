@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>示例：IPTV 直播列表 · 通用 M3U 播放器</title>
+  <style>
+    body { margin: 0; padding: 24px; background: #070c15; color: #e8eef8; font: 15px/1.6 system-ui, sans-serif; }
+    a { color: #7dd3fc; }
+    .note { max-width: 900px; margin: 16px 0; opacity: .8; }
+    iframe { width: 100%; aspect-ratio: 16/10; min-height: 560px; border: 0; border-radius: 16px; }
+  </style>
+</head>
+<body>
+  <p><a href="../">← 返回播放器说明</a></p>
+  <p class="note">
+    这是最简单的 <code>?m3u=</code> 调用方式。源站
+    <a href="https://iptv.yang-1989.xyz/playlist.m3u" target="_blank" rel="noopener">iptv.yang-1989.xyz/playlist.m3u</a>
+    返回 <code>Access-Control-Allow-Origin: *</code>，因此网页播放器可以直接读取。
+    H.265 / AC-3 频道在多数桌面浏览器里无法解码，这里只作网页预览。
+  </p>
+
+  <iframe
+    src="https://andrewgoal.github.io/m3u-player/?embed=1&amp;title=IPTV%20%E8%AF%95%E6%92%AD&amp;m3u=https%3A%2F%2Fiptv.yang-1989.xyz%2Fplaylist.m3u"
+    title="IPTV 试播"
+    allow="autoplay; fullscreen; picture-in-picture"
+    allowfullscreen
+    loading="lazy"></iframe>
+</body>
+</html>
