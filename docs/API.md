@@ -21,6 +21,8 @@
 
 播放器内置三个不可删除的节目源，默认依次为「气象万千 · 浏览器生成」「气象万千 · M3U 文件」「IPTV · M3U 文件」。选中的源失败时会依次尝试后面的源；用户自己添加的源可以删除，名称留空时随机取一个四字成语。
 
+自定义源要求源站返回 `Access-Control-Allow-Origin` 头。如果源站没有开放跨域，浏览器会拦截请求，播放器会在提示条和源名称上明确标出「源站未开放跨域（CORS），浏览器无法读取」，并说明实际切换到了哪个备用源，不会假装切换成功。
+
 ## 2. 配置对象
 
 在加载播放器脚本之前声明：
@@ -56,11 +58,11 @@ window.M3U_PLAYER_CONFIG = {
 先加载 SDK，再加载 Provider 脚本，最后加载播放器：
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.5/player/sdk.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.6/player/sdk.js"></script>
 <script src="./my-provider.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.5/player/playlist.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.5/player/vendor/hls.light.min.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.5/player/app.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.6/player/playlist.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.6/player/vendor/hls.light.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.6/player/app.js"></script>
 ```
 
 Provider 脚本：
@@ -111,7 +113,7 @@ iframe.contentWindow.postMessage({ type: 'm3u-player:play', url: 'https://.../a.
 推荐按 tag 锁定版本，避免播放器升级影响业务页面：
 
 ```text
-https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.5/player/app.js
+https://cdn.jsdelivr.net/gh/AndrewGoal/m3u-player@v1.6/player/app.js
 ```
 
 也可以直接用 Pages 上的最新文件：

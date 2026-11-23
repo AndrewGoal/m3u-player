@@ -699,12 +699,14 @@
     SOURCES.forEach(function (source) {
       var row = document.createElement('div');
       row.className = 'source-item' + (source.id === activeSourceId ? ' is-active' : '');
+      row.dataset.sourceId = source.id;
 
       var select = document.createElement('button');
       select.type = 'button';
       select.className = 'source-select';
       select.textContent = source.label;
       select.title = source.provider ? '浏览器实时生成' : source.url;
+      select.dataset.normalTitle = select.title;
       select.addEventListener('click', function () {
         if (source.id !== activeSourceId) selectSource(source.id);
       });
@@ -738,7 +740,7 @@
     activeSourceId = id;
     persistActiveSource();
     renderSourceList();
-    loadPlaylist({ manual: true });
+    loadPlaylist({ manual: true, explicit: true });
   }
 
   function addSource(value, name) {
@@ -755,8 +757,8 @@
     activeSourceId = id;
     persistActiveSource();
     renderSourceList();
-    loadPlaylist({ manual: true });
-    toast('已添加并切换到：' + label);
+    loadPlaylist({ manual: true, explicit: true });
+    toast('已添加节目源：' + label);
     return true;
   }
 
@@ -769,7 +771,7 @@
       activeSourceId = SOURCES[0] ? SOURCES[0].id : '';
       persistActiveSource();
       renderSourceList();
-      loadPlaylist({ manual: true });
+      loadPlaylist({ manual: true, explicit: true });
     } else {
       renderSourceList();
     }
@@ -839,9 +841,16 @@
 
   /* ---------- 加载 ---------- */
 
+  var pendingLoad = null;
+
   function loadPlaylist(options) {
     var opts = options || {};
-    if (state.loading) return;
+    // 切换/添加节目源时如果上一次加载还没结束，记下来，结束后立刻补一次，
+    // 避免这次切换被 state.loading 直接吞掉。
+    if (state.loading) {
+      pendingLoad = opts;
+      return;
+    }
 
     state.loading = true;
     refreshBtn.classList.add('spin');
@@ -849,6 +858,7 @@
 
     var errors = [];
     var playlistSources = orderedSources();
+    var requestedSource = findSource(activeSourceId) || playlistSources[0] || null;
 
     function trySource(index) {
       if (index >= playlistSources.length) {
@@ -880,15 +890,58 @@
 
     trySource(0)
       .then(function (result) {
+        result.requestedSource = requestedSource;
+        result.errors = errors;
         finishLoad(result, opts);
       })
       .catch(function (error) {
+        error.requestedSource = requestedSource;
+        error.errors = errors;
         useCacheOrFail(error, opts);
       })
       .finally(function () {
         state.loading = false;
         refreshBtn.classList.remove('spin');
+        if (pendingLoad) {
+          var next = pendingLoad;
+          pendingLoad = null;
+          loadPlaylist(next);
+        }
       });
+  }
+
+  function isCrossOriginError(error) {
+    return !!error && (error.name === 'TypeError' ||
+      /Failed to fetch|NetworkError|Load failed|blocked by CORS/i.test(String(error.message || '')));
+  }
+
+  function sourceFailureHint(errors) {
+    var list = errors || [];
+    for (var i = 0; i < list.length; i++) {
+      if (isCrossOriginError(list[i])) return '源站未开放跨域（CORS），浏览器无法读取';
+    }
+    return list.length && list[0].message ? list[0].message : '网络错误';
+  }
+
+  function clearSourceFailures() {
+    var rows = document.querySelectorAll('.source-item.is-failed');
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].classList.remove('is-failed');
+      var select = rows[i].querySelector('.source-select');
+      if (select) select.title = select.dataset.normalTitle || '';
+    }
+  }
+
+  function markSourceFailure(source, reason) {
+    if (!source) return;
+    var rows = document.querySelectorAll('.source-item');
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i].dataset.sourceId !== source.id) continue;
+      rows[i].classList.add('is-failed');
+      var select = rows[i].querySelector('.source-select');
+      if (select) select.title = '加载失败：' + reason;
+      break;
+    }
   }
 
   function finishLoad(result, opts) {
@@ -999,16 +1052,22 @@
       }
     }
 
-    // 成功加载后清掉残留的备用源提示；若实际用的不是当前选中的源，给出说明
+    if (programNotice) showNotice(programNotice.text, 'warn', programNotice.action);
+
+    // 明确说明「选中的源失败、实际用了备用源」，不要再静默用旧内容假装切换成功
     if (!result.source.cached) {
       hideNotice('fallback');
+      clearSourceFailures();
       if (result.source.id !== activeSourceId) {
-        showNotice('当前节目源不可用，已切换到「' + result.source.label + '」。可在节目源区域切换。', 'warn', {
+        var from = result.requestedSource ? result.requestedSource.label : '当前节目源';
+        var reason = sourceFailureHint(result.errors);
+        markSourceFailure(result.requestedSource, reason);
+        showNotice('「' + from + '」加载失败（' + reason + '），已切换到「' + result.source.label + '」。', 'warn', {
           scope: 'fallback'
         });
+        if (opts.explicit) toast('节目源加载失败：' + reason, 'error');
       }
     }
-    if (programNotice) showNotice(programNotice.text, 'warn', programNotice.action);
 
     notifyParent('m3u-player:ready', {
       count: state.items.length,
@@ -1052,6 +1111,11 @@
           finishLoad(result, opts);
           // 缓存状态由顶部状态栏显示，刷新按钮就在这里，不再额外弹提示
           setStatus('离线缓存 · ' + items.length + ' 个节目', 'warn');
+          if (opts && opts.explicit) {
+            var cacheReason = sourceFailureHint(error.errors || [error]);
+            markSourceFailure(error.requestedSource, cacheReason);
+            toast('节目源加载失败：' + cacheReason, 'error');
+          }
           return;
         }
       } catch (cacheError) { /* 缓存损坏，走失败分支 */ }
