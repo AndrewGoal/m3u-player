@@ -766,10 +766,7 @@
     }
 
     // 只要成功从在线源加载，就清掉之前残留的离线缓存提示
-    if (!result.source.cached) {
-      hideNotice('cache');
-      hideNotice('fallback');
-    }
+    if (!result.source.cached) hideNotice('fallback');
     if (!result.source.cached && state.source && !state.source.primary && !state.source.custom) {
       showNotice('主数据源暂时不可用，当前使用' + state.source.label + '（可能不是最新）。稍后点「刷新」重试。', 'warn', {
         scope: 'fallback'
@@ -817,11 +814,7 @@
             lastModified: cached.savedAt ? new Date(cached.savedAt).toUTCString() : null
           };
           finishLoad(result, opts);
-          showNotice('数据源暂时不可用，正在显示 ' + formatDateTime(cached.savedAt) + ' 的缓存节目单。', 'warn', {
-            label: '重试',
-            scope: 'cache',
-            onClick: function () { loadPlaylist({ manual: true }); }
-          });
+          // 缓存状态由顶部状态栏显示，刷新按钮就在这里，不再额外弹提示
           setStatus('离线缓存 · ' + items.length + ' 个节目', 'warn');
           return;
         }
