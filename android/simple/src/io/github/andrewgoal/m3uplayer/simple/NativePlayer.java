@@ -7,6 +7,11 @@ import android.os.Looper;
 import android.view.SurfaceView;
 
 import androidx.media3.common.C;
+import androidx.media3.exoplayer.analytics.AnalyticsListener;
+import androidx.media3.exoplayer.upstream.BandwidthMeter;
+import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter;
+import androidx.media3.exoplayer.source.LoadEventInfo;
+import androidx.media3.exoplayer.source.MediaLoadData;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MimeTypes;
 import androidx.media3.common.PlaybackException;
@@ -29,8 +34,8 @@ final class NativePlayer {
         /** type: ready / playing / paused / ended / error / buffering；a: 时长(ms) 或 1/0 */
         void onState(String type, long a);
 
-        /** 每 500ms 汇报一次进度，页面不用自己轮询。 */
-        void onTick(long position, long duration, boolean playing);
+        /** 每 500ms 汇报一次进度和网速（字节/秒），页面不用自己轮询。 */
+        void onTick(long position, long duration, boolean playing, long bytesPerSecond);
     }
 
     private final Context context;
@@ -41,6 +46,21 @@ final class NativePlayer {
     private ExoPlayer player;
     private long lastDuration = 0;
     private int liveRetries = 0;
+    /** 平滑后的实际下载速度（字节/秒）：优先用带宽估算，它一有样本就更新。 */
+    private volatile long speedBps = 0;
+    private volatile long meterBps = 0;
+    private DefaultBandwidthMeter bandwidthMeter;
+
+    private final AnalyticsListener networkStats = new AnalyticsListener() {
+        @Override
+        public void onLoadCompleted(EventTime eventTime, LoadEventInfo info, MediaLoadData data) {
+            // 只统计媒体分片：播放列表/init 分片只有几 KB，会把速度拉低成误导性的数字
+            if (info == null || info.bytesLoaded < 65536 || info.loadDurationMs <= 0) return;
+            long sample = info.bytesLoaded * 1000 / info.loadDurationMs;
+            long previous = speedBps;
+            speedBps = previous == 0 ? sample : (previous * 3 + sample) / 4;
+        }
+    };
 
     private final Player.Listener events = new Player.Listener() {
         @Override
@@ -60,8 +80,15 @@ final class NativePlayer {
 
         @Override
         public void onIsPlayingChanged(boolean isPlaying) {
-            if (isPlaying) emit("playing", 0);
-            else emit("paused", 0);
+            if (isPlaying) {
+                emit("playing", 0);
+                return;
+            }
+            // 只有「准备好之后用户按了暂停」才算暂停；
+            // 起播/缓冲阶段 isPlaying 也会变 false，那是缓冲，不是暂停
+            if (player == null || player.getPlaybackState() != Player.STATE_READY) return;
+            boolean pausedByUser = !player.getPlayWhenReady();
+            if (pausedByUser) emit("paused", 0);
         }
 
         @Override
@@ -86,7 +113,7 @@ final class NativePlayer {
         @Override
         public void run() {
             if (player == null) return;
-            listener.onTick(player.getCurrentPosition(), lastDuration, player.isPlaying());
+            listener.onTick(player.getCurrentPosition(), lastDuration, player.isPlaying(), bandwidthBytes());
             main.postDelayed(this, 500);
         }
     };
@@ -95,6 +122,11 @@ final class NativePlayer {
         this.context = context;
         this.surfaceView = surfaceView;
         this.listener = listener;
+    }
+
+    /** 带宽估算优先（一直有数），没有就退回分片实测。 */
+    private long bandwidthBytes() {
+        return meterBps > 0 ? meterBps : speedBps;
     }
 
     private static long normalizeDuration(long duration) {
@@ -107,15 +139,29 @@ final class NativePlayer {
             MediaItem.Builder item = new MediaItem.Builder().setUri(Uri.parse(url));
             if (hls) item.setMimeType(MimeTypes.APPLICATION_M3U8);
 
-            ExoPlayer created = new ExoPlayer.Builder(context).build();
+            meterBps = 0;
+            bandwidthMeter = new DefaultBandwidthMeter.Builder(context).build();
+            bandwidthMeter.addEventListener(new android.os.Handler(android.os.Looper.getMainLooper()),
+                    new BandwidthMeter.EventListener() {
+                        @Override
+                        public void onBandwidthSample(int elapsedMs, long bytes, long bitrateEstimate) {
+                            if (bitrateEstimate > 0) meterBps = bitrateEstimate / 8;
+                        }
+                    });
+
+            ExoPlayer created = new ExoPlayer.Builder(context)
+                    .setBandwidthMeter(bandwidthMeter)
+                    .build();
             created.setVideoSurfaceView(surfaceView);
             created.addListener(events);
+            created.addAnalyticsListener(networkStats);
             created.setMediaItem(item.build());
             created.setVolume(1f);
             created.prepare();
             created.setPlayWhenReady(true);
             player = created;
             lastDuration = 0;
+            speedBps = 0;
             liveRetries = 0;
             main.removeCallbacks(ticker);
             main.post(ticker);

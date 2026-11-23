@@ -10,13 +10,27 @@
   <meta name="referrer" content="no-referrer">
 
   <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
-  <link rel="stylesheet" href="player/simple.css?v=2">
+  <link rel="stylesheet" href="player/simple.css?v=5">
 </head>
 <body>
   <!-- 换台过渡层：盖住 WebView 自带的灰色播放占位图 -->
   <div class="switching" id="switching" hidden>
     <span class="spinner" aria-hidden="true"></span>
     <span class="switching-text" id="switchingText">正在换台…</span>
+    <span class="switching-speed" id="switchingSpeed"></span>
+  </div>
+
+  <!-- 暂停信息层 -->
+  <div class="pause" id="pausePanel" hidden>
+    <div class="pause-title" id="pauseTitle">—</div>
+    <div class="pause-sub">已暂停</div>
+    <div class="pause-keys">
+      <div class="pause-key"><kbd>OK</kbd><span>播放 / 暂停</span></div>
+      <div class="pause-key"><kbd>◀ ▶</kbd><span>快退 / 快进 10 秒</span></div>
+      <div class="pause-key"><kbd>▲ ▼</kbd><span>上一个 / 下一个</span></div>
+      <div class="pause-key"><kbd>菜单</kbd><span>换源 · 换台</span></div>
+      <div class="pause-key"><kbd>返回</kbd><span>连按两次退出</span></div>
+    </div>
   </div>
 
   <!-- 进度条：只在按左右键时出现一会儿 -->
@@ -51,7 +65,7 @@
 
   <script src="player/sdk.js"></script>
   <script src="https://andrewgoal.github.io/cctv_weather_forecasting_m3u/weather-provider.js"></script>
-  <script src="player/playlist.js?v=2"></script>
-  <script src="player/simple.js?v=2"></script>
+  <script src="player/playlist.js?v=4"></script>
+  <script src="player/simple.js?v=4"></script>
 </body>
 </html>

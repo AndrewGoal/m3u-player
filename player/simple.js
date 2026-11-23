@@ -42,6 +42,9 @@
   var osdEl = document.getElementById('osd');
   var switchingEl = document.getElementById('switching');
   var switchingText = document.getElementById('switchingText');
+  var switchingSpeed = document.getElementById('switchingSpeed');
+  var pauseEl = document.getElementById('pausePanel');
+  var pauseTitle = document.getElementById('pauseTitle');
   var sourcePanel = document.getElementById('sourcePanel');
   var sourceList = document.getElementById('sourceList');
   var sourceHint = document.getElementById('sourceHint');
@@ -63,6 +66,7 @@
     posMs: 0,
     durationMs: 0,
     pendingTitle: '',
+    bandwidth: 0,
     mode: 'video',        // video | sources | channels
     column: 'items',      // groups | items
     sourceIndex: 0,
@@ -149,6 +153,7 @@
   function showSwitching(text) {
     switchingText.textContent = text || '正在换台…';
     switchingEl.hidden = false;
+    paintSpeed();
     clearTimeout(switchingTimer);
     switchingTimer = setTimeout(function () {
       if (switchingEl.hidden) return;
@@ -160,6 +165,29 @@
   function hideSwitching() {
     clearTimeout(switchingTimer);
     switchingEl.hidden = true;
+    if (switchingSpeed) switchingSpeed.textContent = '';
+  }
+
+  function formatSpeed(bytesPerSecond) {
+    if (!bytesPerSecond || bytesPerSecond < 1) return '';
+    if (bytesPerSecond >= 1024 * 1024) return (bytesPerSecond / 1048576).toFixed(1) + ' MB/s';
+    if (bytesPerSecond >= 1024) return (bytesPerSecond / 1024).toFixed(0) + ' KB/s';
+    return bytesPerSecond + ' B/s';
+  }
+
+  function paintSpeed() {
+    if (!switchingSpeed) return;
+    switchingSpeed.textContent = switchingEl.hidden ? '' : formatSpeed(state.bandwidth);
+  }
+
+  function showPause() {
+    if (!state.current) return;
+    pauseTitle.textContent = state.current.title;
+    pauseEl.hidden = false;
+  }
+
+  function hidePause() {
+    pauseEl.hidden = true;
   }
 
   function isHlsUrl(url) {
@@ -344,6 +372,7 @@
     state.posMs = 0;
     state.durationMs = 0;
     state.playing = false;
+    hidePause();
     showSwitching(item.title);
     state.pendingTitle = opts.silent ? '' : item.title;
     if (state.mode === 'channels') renderChannels();
@@ -490,6 +519,7 @@
 
   function openSources() {
     osd('');
+    hidePause();
     state.mode = 'sources';
     state.sourceIndex = Math.max(0, state.sources.indexOf(activeSource()));
     renderSources();
@@ -679,6 +709,7 @@
   }
 
   function openChannels() {
+    hidePause();
     if (!state.groups.length) {
       osd('还没有节目', 1600);
       return;
@@ -859,6 +890,7 @@
         state.playing = true;
         clearTimeout(bufferTimer);
         clearTimeout(watchdogTimer);
+        hidePause();
         hideSwitching();
         if (state.pendingTitle) {
           osd(state.pendingTitle, 1600);
@@ -866,8 +898,9 @@
         }
         break;
       case 'paused':
+        // 用户主动暂停：显示台名 + 按键说明（换台/缓冲过程中不弹）
         state.playing = false;
-        osd('❚❚ 暂停', 900);
+        if (switchingEl.hidden && state.mode === 'video') showPause();
         break;
       case 'ended':
         state.playing = false;
@@ -876,17 +909,20 @@
       case 'buffering':
         if (value) {
           clearTimeout(bufferTimer);
+          // 卡住时不要弹「暂停」，而是把台名 + 网速摆出来，直到重新出画
           bufferTimer = setTimeout(function () {
-            if (state.playing) showSwitching('正在缓冲…');
-          }, 1500);
+            if (state.playing) return;
+            showSwitching(state.current ? state.current.title : '正在缓冲…');
+          }, 1200);
         } else {
           clearTimeout(bufferTimer);
-          if (switchingText.textContent === '正在缓冲…') hideSwitching();
+          if (!state.playing && state.mode === 'video') hideSwitching();
         }
         break;
       case 'error':
         state.playing = false;
         clearTimeout(watchdogTimer);
+        hidePause();
         hideSwitching();
         osd('这个频道播不了 · 上下键换台', 3000);
         break;
@@ -895,11 +931,13 @@
     }
   };
 
-  window.__nativeTick = function (position, duration, playing) {
+  window.__nativeTick = function (position, duration, playing, bytesPerSecond) {
     state.posMs = position || 0;
     if (duration) state.durationMs = duration;
     state.playing = !!playing;
+    if (typeof bytesPerSecond === 'number') state.bandwidth = bytesPerSecond;
     if (progressEl.classList.contains('is-visible')) updateProgress();
+    paintSpeed();
   };
 
   document.addEventListener('contextmenu', function (event) { event.preventDefault(); });
@@ -912,6 +950,7 @@
     osdEl.hidden = false;
     sourcePanel.hidden = false;
     channelPanel.hidden = false;
+    pauseEl.hidden = true;
 
     if (!Parser || !SDK) {
       showSwitching('播放器脚本加载失败');

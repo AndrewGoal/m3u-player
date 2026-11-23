@@ -77,12 +77,13 @@ public class SimpleActivity extends ShellActivity {
             }
 
             @Override
-            public void onTick(final long position, final long duration, final boolean playing) {
+            public void onTick(final long position, final long duration, final boolean playing,
+                               final long bytesPerSecond) {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         js("window.__nativeTick && window.__nativeTick(" + position + "," + duration + ","
-                                + (playing ? "1" : "0") + ")");
+                                + (playing ? "1" : "0") + "," + bytesPerSecond + ")");
                     }
                 });
             }
