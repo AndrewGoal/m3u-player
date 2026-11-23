@@ -1,0 +1,523 @@
+/* ==========================================================================
+   TV 模式：遥控器 / 10 英尺界面
+   只在 <html class="tv"> 下生效，手机与桌面完全不受影响。
+   视口按 1080p / density 240 计算，约 1280×720 CSS 像素。
+   ========================================================================== */
+
+html.tv {
+  font-size: 18px;
+}
+
+html.tv body {
+  overflow-x: hidden;
+}
+
+/* ---------- 骨架 ---------- */
+
+html.tv .app {
+  width: 100%;
+  padding: 18px 26px 20px;
+  gap: 12px;
+}
+
+html.tv .layout {
+  grid-template-columns: minmax(0, 1fr) 430px;
+  grid-template-areas: "stage sidebar";
+  gap: 14px;
+}
+
+html.tv .stage {
+  gap: 10px;
+}
+
+/* 电视上不用的东西：快捷键提示、页脚、复制/下载菜单、源码链接 */
+html.tv .stage-tips,
+html.tv .foot,
+html.tv .more,
+html.tv #repoLink,
+html.tv .skip-link {
+  display: none !important;
+}
+
+/* ---------- 顶栏 ---------- */
+
+html.tv .topbar {
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+html.tv .brand {
+  gap: 11px;
+}
+
+html.tv .brand-badge,
+html.tv .brand-badge img {
+  width: 40px;
+  height: 40px;
+}
+
+html.tv .brand-title {
+  font-size: 21px;
+}
+
+html.tv .brand-sub {
+  font-size: 12.5px;
+}
+
+html.tv .top-actions {
+  gap: 10px;
+}
+
+html.tv .status {
+  height: 38px;
+  padding: 0 14px;
+  font-size: 13px;
+  max-width: 46vw;
+}
+
+/* ---------- 按钮与焦点 ---------- */
+
+html.tv .btn {
+  height: 42px;
+  padding: 0 18px;
+  font-size: 15px;
+}
+
+html.tv .btn-icon {
+  width: 42px;
+  padding: 0;
+}
+
+html.tv .icon {
+  width: 18px;
+  height: 18px;
+}
+
+html.tv .tag {
+  height: 26px;
+  padding: 0 11px;
+  font-size: 12.5px;
+}
+
+html.tv .switch {
+  font-size: 14px;
+  gap: 8px;
+}
+
+html.tv .switch input {
+  width: 42px;
+  height: 24px;
+}
+
+html.tv .switch input::after {
+  width: 18px;
+  height: 18px;
+}
+
+html.tv .switch input:checked::after {
+  transform: translateX(18px);
+}
+
+/* 遥控器焦点：整套皮肤里唯一“必须一眼看见”的东西 */
+html.tv :focus {
+  outline: none;
+}
+
+html.tv .btn:focus,
+html.tv .chip:focus,
+html.tv .item:focus,
+html.tv .source-select:focus,
+html.tv .source-add-row > button:focus,
+html.tv input:focus,
+html.tv .tv-btn:focus,
+html.tv .notice-action:focus,
+html.tv .linkish:focus,
+html.tv .pwa-update button:focus {
+  outline: 3px solid var(--accent-strong);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 7px rgba(70, 182, 255, 0.2);
+}
+
+html.tv .item:focus {
+  border-color: rgba(70, 182, 255, 0.62);
+  background: rgba(70, 182, 255, 0.16);
+}
+
+html.tv .item:focus .item-play {
+  opacity: 1;
+}
+
+html.tv .chip:focus {
+  color: var(--text);
+  border-color: rgba(70, 182, 255, 0.7);
+}
+
+/* ---------- 播放器 ---------- */
+
+html.tv .player-wrap {
+  border-radius: 14px;
+}
+
+html.tv .overlay-title {
+  font-size: 22px;
+}
+
+html.tv .overlay-hint {
+  font-size: 14px;
+}
+
+html.tv .big-play {
+  width: 84px;
+  height: 84px;
+}
+
+html.tv .player-wrap:focus {
+  outline: 3px solid rgba(127, 208, 255, 0.55);
+  outline-offset: 2px;
+}
+
+html.tv .big-play:focus {
+  outline: 3px solid var(--accent-strong);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 9px rgba(70, 182, 255, 0.22);
+}
+
+html.tv .sound-prompt {
+  font-size: 15px;
+  padding: 10px 18px;
+}
+
+/* ---------- 当前节目卡 ---------- */
+
+html.tv .now-card {
+  padding: 13px 16px;
+  border-radius: 14px;
+  gap: 12px;
+}
+
+html.tv .now-tags {
+  gap: 8px;
+}
+
+html.tv .now-title {
+  font-size: 24px;
+  line-height: 1.3;
+}
+
+html.tv .now-meta {
+  font-size: 13px;
+}
+
+html.tv .now-actions {
+  gap: 8px;
+  max-width: none;
+}
+
+/* ---------- 侧栏 ---------- */
+
+html.tv .sidebar {
+  max-height: calc(100vh - 100px);
+  border-radius: 14px;
+  backdrop-filter: none;
+  background: var(--panel-solid);
+}
+
+html.tv .sidebar-head {
+  padding: 12px 12px 8px;
+}
+
+html.tv .search {
+  height: 44px;
+  padding: 0 13px;
+}
+
+html.tv .search input {
+  font-size: 15.5px;
+}
+
+html.tv .search kbd {
+  display: none;
+}
+
+html.tv .chips {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-height: none;
+  padding: 0 12px 10px;
+}
+
+html.tv .chip {
+  flex: none;
+  height: 36px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+html.tv .chip-count {
+  font-size: 12px;
+}
+
+html.tv .list {
+  padding: 6px 6px 10px;
+}
+
+html.tv .group-title {
+  font-size: 12px;
+  padding: 8px 10px 6px;
+}
+
+html.tv .item {
+  min-height: 64px;
+  padding: 9px 12px;
+  border-radius: 12px;
+}
+
+html.tv .item-name {
+  font-size: 17.5px;
+}
+
+html.tv .item-sub {
+  font-size: 12.5px;
+}
+
+html.tv .item-play {
+  width: 30px;
+  height: 30px;
+  font-size: 15px;
+}
+
+html.tv .sidebar-foot {
+  font-size: 12.5px;
+  padding: 8px 12px;
+}
+
+html.tv .list-empty,
+html.tv .list-loading,
+html.tv .list-error {
+  font-size: 14px;
+}
+
+/* ---------- 节目源：电视上压成一行标签 ---------- */
+
+html.tv .source-panel {
+  padding: 10px 12px 6px;
+}
+
+html.tv .source-panel-head {
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+html.tv .source-items {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-bottom: 2px;
+  max-height: 78px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+html.tv .source-item {
+  flex: none;
+}
+
+html.tv .source-select {
+  height: 34px;
+  padding: 0 12px;
+  max-width: 196px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+html.tv .source-badge {
+  display: none;
+}
+
+html.tv .source-remove {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  font-size: 18px;
+}
+
+html.tv .source-add {
+  margin-top: 6px;
+}
+
+html.tv .source-add input {
+  height: 40px;
+  font-size: 14px;
+}
+
+html.tv .source-add-row > button {
+  height: 40px;
+  font-size: 14px;
+}
+
+html.tv .source-items .tv-source-add {
+  flex: none;
+  height: 34px;
+  margin: 0;
+}
+
+/* ---------- 提示条 ---------- */
+
+html.tv .notice {
+  font-size: 14px;
+  padding: 12px 14px;
+}
+
+html.tv .notice-action {
+  height: 38px;
+  font-size: 14px;
+  padding: 0 16px;
+}
+
+html.tv .toast {
+  font-size: 15px;
+  padding: 12px 20px;
+}
+
+/* ---------- 影院模式：只留视频 ---------- */
+
+html.tv-theater .topbar,
+html.tv-theater .sidebar,
+html.tv-theater .now-card,
+html.tv-theater .notice,
+html.tv-theater .foot,
+html.tv-theater .tv-osd {
+  display: none !important;
+}
+
+html.tv-theater .app {
+  padding: 0;
+  gap: 0;
+  width: 100%;
+  height: 100vh;
+}
+
+html.tv-theater .layout {
+  display: block;
+  gap: 0;
+}
+
+html.tv-theater .stage {
+  height: 100vh;
+  gap: 0;
+}
+
+html.tv-theater .player-wrap {
+  height: 100vh;
+  border: 0;
+  border-radius: 0;
+  aspect-ratio: auto;
+  box-shadow: none;
+}
+
+html.tv-theater .tv-bar {
+  padding-bottom: 26px;
+}
+
+/* ---------- 遥控器控制条 ---------- */
+
+.tv-bar {
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 16px 16px 14px;
+  background: linear-gradient(180deg, rgba(4, 8, 16, 0), rgba(4, 8, 16, 0.86) 42%, rgba(4, 8, 16, 0.94));
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.tv-bar[hidden] {
+  display: none;
+}
+
+.tv-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tv-btn {
+  flex: none;
+  height: 42px;
+  padding: 0 15px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 178, 220, 0.28);
+  background: rgba(12, 20, 34, 0.82);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tv-btn-main {
+  border-color: rgba(70, 182, 255, 0.6);
+  background: rgba(70, 182, 255, 0.22);
+}
+
+.tv-progress {
+  position: relative;
+  flex: 1;
+  min-width: 60px;
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+
+.tv-progress[hidden] {
+  display: none;
+}
+
+.tv-progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+}
+
+.tv-time {
+  flex: none;
+  min-width: 96px;
+  text-align: center;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.tv-time[hidden] {
+  display: none;
+}
+
+/* ---------- 操作反馈 ---------- */
+
+.tv-osd {
+  position: fixed;
+  left: 50%;
+  bottom: 15%;
+  z-index: 90;
+  padding: 12px 22px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: rgba(8, 14, 24, 0.92);
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 600;
+  opacity: 0;
+  transform: translate(-50%, 8px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  pointer-events: none;
+}
+
+.tv-osd.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}

@@ -6,7 +6,7 @@
 
 'use strict';
 
-const VERSION = '1.0.1';
+const VERSION = '1.1.0';
 const CACHE_NAME = 'hnbc-player-' + VERSION;
 const CACHE_PREFIX = 'hnbc-player-';
 
@@ -18,6 +18,8 @@ const PRECACHE = [
   'index.html',
   'manifest.json',
   'player/style.css',
+  'player/tv.css',
+  'player/tv.js',
   'player/sdk.js',
   'player/playlist.js',
   'player/app.js',

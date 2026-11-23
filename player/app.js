@@ -427,7 +427,8 @@
 
   function hideOverlay() {
     overlay.classList.add('is-hidden');
-    video.controls = true;
+    // TV 模式用自绘控制条：原生 <video controls> 不认遥控器
+    video.controls = !document.documentElement.classList.contains('tv');
   }
 
   function showSoundPrompt() {
@@ -522,8 +523,8 @@
   var IPTV_M3U_URL = 'https://iptv.yang-1989.xyz/playlist.m3u';
 
   var BUILTIN_SOURCES = [
-    { id: 'builtin:weather-live', label: '气象万千 · 浏览器生成', provider: 'weatherLive', primary: true, builtin: true },
-    { id: 'builtin:weather-file', label: '气象万千 · M3U 文件', url: WEATHER_M3U_URL, builtin: true },
+    { id: 'builtin:weather-live', label: '气象万千（现取）', provider: 'weatherLive', primary: true, builtin: true },
+    { id: 'builtin:weather-file', label: '气象万千（滞后m3u文件）', url: WEATHER_M3U_URL, builtin: true },
     { id: 'builtin:iptv-file', label: 'IPTV · M3U 文件', url: IPTV_M3U_URL, builtin: true }
   ];
 
