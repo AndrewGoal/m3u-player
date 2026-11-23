@@ -6,7 +6,7 @@
 
 'use strict';
 
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 const CACHE_NAME = 'hnbc-player-' + VERSION;
 const CACHE_PREFIX = 'hnbc-player-';
 

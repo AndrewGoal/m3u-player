@@ -98,7 +98,6 @@
   var overlayHint = $('overlayHint');
   var bigPlay = $('bigPlay');
   var soundPrompt = $('soundPrompt');
-  var playerBadge = $('playerBadge');
   var statusEl = $('status');
   var statusText = $('statusText');
   var refreshBtn = $('refreshBtn');
@@ -1127,7 +1126,6 @@
     showOverlay('播放列表加载失败', '请检查网络后点击下方按钮重试');
     overlayTitle.textContent = '播放列表加载失败';
     overlayHint.textContent = '请检查网络连接，或点「刷新」重试';
-    playerBadge.hidden = true;
 
     if (!state.items.length) {
       listEl.replaceChildren();
@@ -1445,8 +1443,7 @@
       state.triedOriginal = false;
       state.triedHlsProbe = false;
       stopHls();
-      playerBadge.hidden = true;
-
+  
       if (useHlsFor(item)) {
         state.isHls = true;
         showOverlay(item.title, '正在连接直播…');
@@ -1720,8 +1717,6 @@
     if (state.mutedForAutoplay && video.muted) showSoundPrompt();
     else hideSoundPrompt();
     if (state.current) {
-      playerBadge.hidden = !/最新/.test(state.current.group);
-      playerBadge.textContent = state.current.group;
       notifyParent('m3u-player:playing', {
         title: state.current.title,
         group: state.current.group,
@@ -1731,7 +1726,6 @@
   });
 
   video.addEventListener('pause', function () {
-    playerBadge.hidden = true;
     hideSoundPrompt();
   });
 
@@ -1752,7 +1746,6 @@
   });
 
   video.addEventListener('ended', function () {
-    playerBadge.hidden = true;
     hideSoundPrompt();
     playNextAfterEnded();
   });
