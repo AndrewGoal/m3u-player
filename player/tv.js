@@ -68,6 +68,7 @@
   var osdEl = null;
   var osdTimer = 0;
   var lastListFocus = null;
+  var userPressed = false;
 
   /* ---------- 工具 ---------- */
 
@@ -444,6 +445,7 @@
   }
 
   function onKey(event) {
+    userPressed = true;
     var action = mediaAction(event.keyCode);
     if (action) {
       event.preventDefault();
@@ -647,6 +649,20 @@
       var active = document.activeElement;
       if (!active || active === document.body) focusListItem();
     }, 1200);
+
+    // 电视上首屏自动播放偶尔会掉（页面加载和视频起播抢时序）：
+    // 起播阶段兜几次，用户一按键就立刻收手
+    var autoResume = setInterval(function () {
+      if (userPressed) {
+        clearInterval(autoResume);
+        return;
+      }
+      if (!video || !video.paused || video.ended) return;
+      if (!video.getAttribute('src') || video.readyState < 2) return;
+      if (video.currentTime > 1) { clearInterval(autoResume); return; }
+      video.play().catch(function () {});
+    }, 1000);
+    setTimeout(function () { clearInterval(autoResume); }, 20000);
 
     // 屏幕右下角不再需要鼠标悬停提示
     document.body.classList.add('tv-ready');
