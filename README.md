@@ -20,7 +20,8 @@
 
 ## 两个示例
 
-- [气象万千](https://andrewgoal.github.io/m3u-player/examples/weather.html)：Provider 在浏览器里实时抓取天气网/齐鲁网数据生成 M3U，失败回退静态文件。
+- [气象万千](https://andrewgoal.github.io/m3u-player/examples/weather.html)：Provider 在浏览器里实时抓取天气网/齐鲁网数据生成 M3U，失败回退到[静态M3U文件（由气象万千项目每半小时生成一次）](https://andrewgoal.github.io/cctv_weather_forecasting_m3u/cctv_weather_forecasting.m3u)。
+- [气象万千-直接加载以上M3U文件](https://andrewgoal.github.io/m3u-player/?m3u=https://andrewgoal.github.io/cctv_weather_forecasting_m3u/cctv_weather_forecasting.m3u)：https://andrewgoal.github.io/m3u-player/?m3u=https://andrewgoal.github.io/cctv_weather_forecasting_m3u/cctv_weather_forecasting.m3u
 - [IPTV 试播](https://andrewgoal.github.io/m3u-player/examples/iptv.html)：直接用 `?m3u=` 加载 `iptv.yang-1989.xyz/playlist.m3u`，来源：https://yang-1989.eu.org/
 
 ## 特性
