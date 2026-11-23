@@ -128,6 +128,45 @@ body {
   display: none;
 }
 
+/* 播不了时只保留两条提示：菜单、返回 */
+.pause-notes {
+  display: none;
+  gap: 14px 28px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.pause.is-error-mode .pause-notes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.pause-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 21px;
+  color: #b9c9de;
+}
+
+.pause-note kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 600;
+}
+
 .pause-title {
   max-width: 78vw;
   font-size: 42px;

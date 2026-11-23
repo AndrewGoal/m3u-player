@@ -11,7 +11,6 @@ import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebView;
 import android.widget.FrameLayout;
-import android.widget.Toast;
 
 import io.github.andrewgoal.m3uplayer.ShellActivity;
 
@@ -207,8 +206,8 @@ public class SimpleActivity extends ShellActivity {
                                     return;
                                 }
                                 lastBackAt = now;
-                                Toast.makeText(SimpleActivity.this,
-                                        "再按一次返回键退出", Toast.LENGTH_SHORT).show();
+                                // 和页面里的提示保持一致，用同一套 toast
+                                js("window.__simpleToast && window.__simpleToast('再按一次返回键退出')");
                             }
                         });
                     }

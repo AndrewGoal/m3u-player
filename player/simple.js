@@ -173,7 +173,8 @@
   function formatSpeed(bytesPerSecond) {
     if (!bytesPerSecond || bytesPerSecond < 1) return '';
     var mbs = bytesPerSecond / 1048576;
-    return (mbs < 0.1 ? 0.1 : mbs).toFixed(1) + ' MB/s';
+    if (mbs < 0.01) return '小于0.01 MB/s';
+    return mbs.toFixed(2) + ' MB/s';
   }
 
   function paintSpeed() {
@@ -395,7 +396,7 @@
     watchdogTimer = setTimeout(function () {
       if (state.current && state.current.url === item.url && !state.playing) {
         hideSwitching();
-        showInfo('error', '这个频道一直没有画面 · 上下键换台');
+        showInfo('error', '这个频道一直没有画面 · [▲▼] 上下键换台');
       }
     }, 20000);
   }
@@ -732,7 +733,7 @@
     if (state.infoKind !== 'error') return false;
     if (code === 38 || code === 40) return false;
     if (code === 13 || code === 23 || code === 37 || code === 39) {
-      osd('这个频道播不了 · 上下键换台', 2200);
+      osd('这个频道播不了 · [▲▼] 上下键换台', 2200);
       return true;
     }
     return true;
@@ -844,6 +845,11 @@
     return false;
   };
 
+  window.__simpleToast = function (text) {
+    osd(text, 2200);
+    return true;
+  };
+
   window.__simpleKey = function (name) {
     switch (name) {
       case 'menu': toggleMenu(); break;
@@ -904,7 +910,7 @@
         state.playing = false;
         clearTimeout(watchdogTimer);
         hideSwitching();
-        showInfo('error', '这个频道播不了 · 上下键换台');
+        showInfo('error', '这个频道播不了 · [▲▼] 上下键换台');
         break;
       default:
         break;
