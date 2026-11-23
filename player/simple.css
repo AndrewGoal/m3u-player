@@ -48,10 +48,53 @@ body {
   display: block;
 }
 
+/* ---------- 换台过渡层 ---------- */
+
+.switching {
+  position: fixed;
+  inset: 0;
+  /* 视频层在 Chromium 里会被提到较高的合成层，这里必须压过它 */
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  background: #000;
+}
+
+.switching[hidden] {
+  display: none;
+}
+
+.switching-text {
+  max-width: 74vw;
+  font-size: 26px;
+  color: #dbe7f6;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spinner {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 5px solid rgba(120, 160, 210, 0.22);
+  border-top-color: var(--accent);
+  animation: tv-spin 0.85s linear infinite;
+}
+
+@keyframes tv-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ---------- 进度条 ---------- */
 
 .progress {
   position: fixed;
+  z-index: 105;
   left: 50%;
   bottom: 46px;
   width: min(760px, 64vw);
@@ -102,6 +145,7 @@ body {
 
 .osd {
   position: fixed;
+  z-index: 110;
   left: 50%;
   top: 64px;
   transform: translate(-50%, -6px);
@@ -132,7 +176,7 @@ body {
 
 .panel {
   position: fixed;
-  z-index: 10;
+  z-index: 100;
   color: var(--text);
   opacity: 0;
   visibility: hidden;

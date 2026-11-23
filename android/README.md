@@ -5,7 +5,7 @@
 | 变体 | 包名 | 页面 | APK |
 | --- | --- | --- | --- |
 | 完整版 | `io.github.andrewgoal.m3uplayer` | `/?tv=1` | `m3u-player-tv.apk` |
-| 简洁版 | `io.github.andrewgoal.m3uplayer.simple` | `/simple.html?tv=1` | `m3u-player-tv-simple.apk` |
+| 简洁版（桌面名：气象分析） | `io.github.andrewgoal.m3uplayer.simple` | `/simple.html?tv=1` | `m3u-player-tv-simple.apk` |
 
 两个都只做播放之外的事情（全屏、常亮、自动播放、按键转发），共用 `ShellActivity`；按键语义在 `MainActivity` / `simple/src/.../SimpleActivity.java` 里各写各的。它不做播放：
 
@@ -14,6 +14,7 @@
 - 允许无手势自动播放（电视上没法先点一下）
 - 遥控器播放/暂停/快进/上一台/下一台转发给网页
 - HTML5 视频全屏交给 `WebChromeClient` 渲染
+- 简洁版额外提供 `TVShell.openNative(url)`：把卡顿的频道交给机上的 VLC / 影视仓 / Kodi（按包名逐个试，避免弹选择框），返回键做了连按两次退出
 
 ## 依赖
 

@@ -46,6 +46,8 @@
   var progressFill = document.getElementById('progressFill');
   var progressTime = document.getElementById('progressTime');
   var osdEl = document.getElementById('osd');
+  var switchingEl = document.getElementById('switching');
+  var switchingText = document.getElementById('switchingText');
   var sourcePanel = document.getElementById('sourcePanel');
   var sourceList = document.getElementById('sourceList');
   var sourceHint = document.getElementById('sourceHint');
@@ -69,7 +71,8 @@
     groupIndex: 0,
     itemIndex: 0,
     hls: null,
-    live: false
+    live: false,
+    stalled: false
   };
 
   var progressTimer = 0;
@@ -136,14 +139,6 @@
       if (state.items[i].url === item.url) return state.items[i];
     }
     return null;
-  }
-
-  function currentIndex() {
-    if (!state.current) return -1;
-    for (var i = 0; i < state.items.length; i += 1) {
-      if (state.items[i].url === state.current.url) return i;
-    }
-    return -1;
   }
 
   /* ---------- 节目源 ---------- */
@@ -280,6 +275,19 @@
     renderSources();
   }
 
+  /* ---------- 换台过渡层 ---------- */
+
+  function showSwitching(text) {
+    if (!switchingEl) return;
+    switchingText.textContent = text || '正在换台…';
+    switchingEl.hidden = false;
+  }
+
+  function hideSwitching() {
+
+    if (switchingEl) switchingEl.hidden = true;
+  }
+
   /* ---------- 播放 ---------- */
 
   function isHlsUrl(url) {
@@ -327,14 +335,23 @@
     }
 
     stopHls();
+    showSwitching(item.title);
+    state.stalled = false;
 
     if (useHls(item)) {
       var hls = new window.Hls({
         enableWorker: true,
+        lowLatencyMode: false,
+        capLevelToPlayerSize: true,
+        maxBufferLength: 16,
+        maxMaxBufferLength: 30,
+        maxBufferSize: 24 * 1000 * 1000,
         manifestLoadingTimeOut: 30000,
-        manifestLoadingMaxRetry: 3,
+        manifestLoadingMaxRetry: 2,
         levelLoadingTimeOut: 30000,
-        fragLoadingTimeOut: 45000
+        levelLoadingMaxRetry: 2,
+        fragLoadingTimeOut: 45000,
+        fragLoadingMaxRetry: 2
       });
       state.hls = hls;
       hls.on(window.Hls.Events.ERROR, function (event, data) {
@@ -343,6 +360,7 @@
           hls.recoverMediaError();
           return;
         }
+        hideSwitching();
         osd('这个源播不了，按上下键换台', 3000);
       });
       hls.attachMedia(video);
@@ -353,8 +371,8 @@
     }
 
     attemptPlay();
-
-    if (!opts.silent) osd(item.title, 1800);
+    // 换台过渡层上已经写了台名，等画面出来再弹一次提示
+    state.pendingTitle = opts.silent ? '' : item.title;
     if (state.mode === 'channels') renderChannels();
   }
 
@@ -384,13 +402,49 @@
     showProgress();
   }
 
+  function currentGroupItems() {
+    if (!state.current) return null;
+    for (var i = 0; i < state.groups.length; i += 1) {
+      if (state.groups[i].name === state.current.group) return state.groups[i].items;
+    }
+    return null;
+  }
+
+  /** 换台只在本分类里循环；当前节目不在列表里时退回整张列表。 */
   function step(delta) {
     userPressed = true;
     if (!state.items.length) return;
-    var index = currentIndex();
+    var pool = currentGroupItems() || state.items;
+    var index = -1;
+    for (var i = 0; i < pool.length; i += 1) {
+      if (state.current && pool[i].url === state.current.url) { index = i; break; }
+    }
     if (index === -1) index = delta > 0 ? -1 : 0;
-    var next = state.items[(index + delta + state.items.length) % state.items.length];
+    var next = pool[(index + delta + pool.length) % pool.length];
     play(next);
+  }
+
+  var healthTimer = 0;
+
+  /** 声音在走但画面帧不增长 → 提示可以用系统播放器。
+   *  这台盒子的 WebView 合成管线会掉帧，1080p 直播尤其明显。 */
+  function watchHealth() {
+    clearInterval(healthTimer);
+    var lastFrames = -1;
+    var stuck = 0;
+    healthTimer = setInterval(function () {
+      if (!state.current || video.paused) { lastFrames = -1; stuck = 0; return; }
+      var quality = video.getVideoPlaybackQuality ? video.getVideoPlaybackQuality() : null;
+      var frames = quality ? quality.totalVideoFrames : -1;
+      var noVideoTrack = video.videoWidth === 0 && video.currentTime > 4;
+      if (lastFrames >= 0 && frames === lastFrames) stuck += 1; else stuck = 0;
+      lastFrames = frames;
+      if (state.stalled) return;
+      if (noVideoTrack || stuck >= 2) {
+        state.stalled = true;
+        osd('画面卡住了 · 菜单键里可以换系统播放器', 6000);
+      }
+    }, 3000);
   }
 
   /* ---------- 进度条 ---------- */
@@ -444,6 +498,44 @@
 
       sourceList.appendChild(row);
     });
+
+    if (hasNativePlayer()) {
+      var nativeRow = document.createElement('li');
+      nativeRow.className = 'native-row';
+      var nativeLabel = document.createElement('span');
+      nativeLabel.className = 'label';
+      nativeLabel.textContent = '用系统播放器打开';
+      var nativeSub = document.createElement('span');
+      nativeSub.className = 'sub';
+      nativeSub.textContent = '画面卡顿时可以试';
+      nativeRow.append(nativeLabel, nativeSub);
+      if (state.sourceIndex === state.sources.length) nativeRow.classList.add('is-focus');
+      nativeRow.addEventListener('click', function () {
+        if (state.mode !== 'sources') return;
+        state.sourceIndex = state.sources.length;
+        openNative();
+      });
+      sourceList.appendChild(nativeRow);
+    }
+  }
+
+  function hasNativePlayer() {
+    return !!(window.TVShell && typeof window.TVShell.openNative === 'function' && state.current);
+  }
+
+  function openNative() {
+    var url = state.current && (state.current.playUrl || state.current.url);
+    closePanels();
+    if (!url || !hasNativePlayer()) {
+      osd('这个环境没有系统播放器可用', 2200);
+      return;
+    }
+    try {
+      window.TVShell.openNative(url);
+      osd('正在用系统播放器打开…', 2000);
+    } catch (err) {
+      osd('打开系统播放器失败', 2200);
+    }
   }
 
   function openSources() {
@@ -464,6 +556,10 @@
   }
 
   function selectSource() {
+    if (state.sourceIndex >= state.sources.length) {
+      openNative();
+      return;
+    }
     var source = state.sources[state.sourceIndex];
     if (!source || state.loading) return;
 
@@ -656,21 +752,26 @@
     }
   }
 
+  function sourceRowCount() {
+    return state.sources.length + (hasNativePlayer() ? 1 : 0);
+  }
+
   function sourcesKey(code) {
     switch (code) {
       case 38:
-        state.sourceIndex = (state.sourceIndex - 1 + state.sources.length) % state.sources.length;
+        state.sourceIndex = (state.sourceIndex - 1 + sourceRowCount()) % sourceRowCount();
         renderSources();
         scrollRow(sourceList, state.sourceIndex);
         return true;
       case 40:
-        state.sourceIndex = (state.sourceIndex + 1) % state.sources.length;
+        state.sourceIndex = (state.sourceIndex + 1) % sourceRowCount();
         renderSources();
         scrollRow(sourceList, state.sourceIndex);
         return true;
       case 13:
       case 23:
-        selectSource();
+        if (state.sourceIndex >= state.sources.length) openNative();
+        else selectSource();
         return true;
       default:
         return false;
@@ -764,13 +865,21 @@
     progressEl.classList.remove('is-visible');
   });
   video.addEventListener('playing', function () {
+    hideSwitching();
     video.volume = 1;
+    watchHealth();
+    if (state.pendingTitle) {
+      osd(state.pendingTitle, 1600);
+      state.pendingTitle = '';
+    }
   });
+
   video.addEventListener('ended', function () {
     step(1);
   });
   video.addEventListener('error', function () {
     if (!video.getAttribute('src')) return;
+    hideSwitching();
     osd('播放失败，按上下键换台', 2500);
   });
 
@@ -787,7 +896,8 @@
     video.volume = 1;
 
     state.sources = loadSources();
-    state.activeId = readActiveId();
+    // ?m3u= 指定的临时源优先级最高（和完整版一致）
+    state.activeId = params.get('m3u') ? 'custom:url' : readActiveId();
     if (!activeSource()) state.activeId = state.sources[0] ? state.sources[0].id : '';
 
     renderSources();

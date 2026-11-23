@@ -15,6 +15,12 @@
 <body>
   <video id="video" playsinline preload="auto" referrerpolicy="no-referrer"></video>
 
+  <!-- 换台过渡层：盖住 WebView 自带的灰色播放占位图 -->
+  <div class="switching" id="switching" hidden>
+    <span class="spinner" aria-hidden="true"></span>
+    <span class="switching-text" id="switchingText">正在换台…</span>
+  </div>
+
   <!-- 进度条：只在按左右键时出现一会儿 -->
   <div class="progress" id="progress" hidden>
     <div class="progress-track"><span class="progress-fill" id="progressFill"></span></div>

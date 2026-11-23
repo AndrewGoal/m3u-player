@@ -57,6 +57,10 @@ public abstract class ShellActivity extends Activity {
         return false;
     }
 
+    /** WebView 建好后调用，子类可以挂 JavascriptInterface。 */
+    protected void onWebViewCreated(WebView view) {
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -176,6 +180,7 @@ public abstract class ShellActivity extends Activity {
             }
         });
 
+        onWebViewCreated(view);
         return view;
     }
 
