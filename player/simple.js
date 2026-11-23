@@ -499,6 +499,7 @@
   function openSources() {
     osd('');
     hideInfo();
+    hideSwitching();
     state.mode = 'sources';
     state.sourceIndex = Math.max(0, state.sources.indexOf(activeSource()));
     renderSources();
@@ -685,6 +686,7 @@
 
   function openChannels() {
     hideInfo();
+    hideSwitching();
     if (!state.groups.length) {
       osd('还没有节目', 1600);
       return;

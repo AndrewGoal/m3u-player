@@ -110,11 +110,11 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  max-width: 86vw;
-  padding: 34px 52px 30px;
+  max-width: 88vw;
+  padding: 26px 40px 24px;
   border-radius: 22px;
   border: 1px solid var(--line-strong);
-  background: rgba(5, 9, 16, 0.82);
+  background: rgba(5, 9, 16, 0.88);
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
 }
 
@@ -124,6 +124,14 @@ body {
   box-shadow: none;
 }
 
+.pause.is-error-mode .pause-body {
+  display: block;
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.pause.is-error-mode .remote,
 .pause.is-error-mode .pause-keys {
   display: none;
 }
@@ -169,7 +177,7 @@ body {
 
 .pause-title {
   max-width: 78vw;
-  font-size: 42px;
+  font-size: 38px;
   font-weight: 700;
   text-align: center;
   overflow: hidden;
@@ -189,37 +197,48 @@ body {
   color: #ffd08a;
 }
 
+.pause-body {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  margin-top: 14px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.remote {
+  flex: none;
+  width: 118px;
+  height: auto;
+  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.45));
+}
+
 .pause-keys {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 16px 30px;
-  margin-top: 14px;
-  padding-top: 20px;
-  border-top: 1px solid var(--line);
+  flex-direction: column;
+  gap: 13px;
 }
 
 .pause-key {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 25px;
-  color: #d7e6fa;
+  font-size: 23px;
+  color: #e2edfb;
 }
 
-.pause-key kbd {
+.pause-key .key-glyph {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 68px;
-  height: 46px;
-  padding: 0 14px;
-  border-radius: 11px;
-  border: 1px solid var(--line-strong);
-  background: rgba(255, 255, 255, 0.07);
-  color: #fff;
-  font-family: inherit;
-  font-size: 21px;
+  min-width: 62px;
+  height: 42px;
+  padding: 0 13px;
+  border-radius: 10px;
+  border: 1px solid rgba(70, 182, 255, 0.5);
+  background: rgba(70, 182, 255, 0.16);
+  color: #cfe9ff;
+  font-size: 19px;
   font-weight: 600;
 }
 

@@ -10,7 +10,7 @@
   <meta name="referrer" content="no-referrer">
 
   <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
-  <link rel="stylesheet" href="player/simple.css?v=8">
+  <link rel="stylesheet" href="player/simple.css?v=11">
 </head>
 <body>
   <!-- 换台过渡层：盖住 WebView 自带的灰色播放占位图 -->
@@ -25,12 +25,37 @@
     <div class="pause-card">
       <div class="pause-title" id="infoTitle">—</div>
       <div class="pause-sub" id="infoSub">已暂停</div>
-      <div class="pause-keys" id="infoKeys">
-        <div class="pause-key"><kbd>OK</kbd><span>播放 / 暂停</span></div>
-        <div class="pause-key"><kbd>◀ ▶</kbd><span>快退 / 快进 10 秒</span></div>
-        <div class="pause-key"><kbd>▲ ▼</kbd><span>上一个 / 下一个</span></div>
-        <div class="pause-key"><kbd>菜单</kbd><span>换源 · 换台</span></div>
-        <div class="pause-key"><kbd>返回</kbd><span>连按两次退出</span></div>
+      <div class="pause-body">
+        <svg class="remote" viewBox="0 0 170 360" role="img" aria-label="遥控器示意图">
+          <rect x="10" y="6" width="150" height="348" rx="28" fill="#232830" stroke="#3d4859" stroke-width="2"/>
+          <circle cx="85" cy="38" r="13" fill="#2b313b" stroke="#55606f" stroke-width="1.5"/>
+          <path d="M85 31v7" stroke="#e05a5a" stroke-width="2.4" stroke-linecap="round"/>
+          <circle cx="85" cy="38" r="9.5" fill="none" stroke="#e05a5a" stroke-width="2.4" stroke-dasharray="17 43" transform="rotate(-90 85 38)"/>
+          <rect x="49" y="62" width="26" height="22" rx="5" fill="#46b6ff" stroke="#7fd0ff" stroke-width="1.5"/>
+          <path d="M55 69h14M55 73h14M55 77h14" stroke="#04202f" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="118" cy="73" r="13" fill="#2b313b" stroke="#55606f" stroke-width="1.5"/>
+          <path d="M118 66l6 8h-12z" fill="#9fb0c6"/>
+          <circle cx="85" cy="150" r="55" fill="#1b1f27" stroke="#48525f" stroke-width="2"/>
+          <polygon points="85,104 95,120 75,120" fill="#46b6ff"/>
+          <polygon points="85,196 95,180 75,180" fill="#46b6ff"/>
+          <polygon points="42,150 58,140 58,160" fill="#46b6ff"/>
+          <polygon points="128,150 112,140 112,160" fill="#46b6ff"/>
+          <circle cx="85" cy="150" r="22" fill="#46b6ff"/>
+          <text x="85" y="156" text-anchor="middle" font-size="15" font-weight="700" fill="#04202f">OK</text>
+          <rect x="53" y="212" width="64" height="24" rx="12" fill="#46b6ff"/>
+          <path d="M97 224H75m6-6-7 6 7 6" fill="none" stroke="#04202f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="62" cy="262" r="14" fill="#2b313b" stroke="#55606f" stroke-width="1.5"/>
+          <path d="M56 262h12" stroke="#9fb0c6" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="110" cy="262" r="14" fill="#2b313b" stroke="#55606f" stroke-width="1.5"/>
+          <path d="M104 262h12M110 256v12" stroke="#9fb0c6" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+        <div class="pause-keys" id="infoKeys">
+          <div class="pause-key"><span class="key-glyph">OK</span><span>播放 / 暂停</span></div>
+          <div class="pause-key"><span class="key-glyph">◀ ▶</span><span>快退 / 快进 10 秒</span></div>
+          <div class="pause-key"><span class="key-glyph">▲ ▼</span><span>上一个 / 下一个</span></div>
+          <div class="pause-key"><span class="key-glyph">☰</span><span>换源 · 换台</span></div>
+          <div class="pause-key"><span class="key-glyph">⏎</span><span>连按两次退出</span></div>
+        </div>
       </div>
       <div class="pause-notes" id="infoNotes">
         <div class="pause-note"><kbd>菜单</kbd><span>换源 · 换台</span></div>

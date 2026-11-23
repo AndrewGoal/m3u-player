@@ -32,6 +32,8 @@ public class SimpleActivity extends ShellActivity {
     private static final long EXIT_WINDOW_MS = 1600;
 
     private SurfaceView surfaceView;
+    /** 没画面时盖住 SurfaceView，避免把上一帧定格画面留在界面后面 */
+    private View blackout;
     private NativePlayer player;
     private long lastBackAt = 0;
 
@@ -53,12 +55,27 @@ public class SimpleActivity extends ShellActivity {
                 ViewGroup.LayoutParams.MATCH_PARENT));
         container.addView(surfaceView);
 
+        blackout = new View(this);
+        blackout.setBackgroundColor(Color.BLACK);
+        blackout.setLayoutParams(new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
+        container.addView(blackout);
+
         player = new NativePlayer(this, surfaceView, new NativePlayer.Listener() {
             @Override
             public void onState(final String type, final long value) {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+                        // 有画面（播放中/暂停）才让出 SurfaceView，其余时候全黑
+                        if (blackout != null) {
+                            if ("playing".equals(type) || "paused".equals(type)) {
+                                blackout.setVisibility(View.GONE);
+                            } else if ("error".equals(type)) {
+                                blackout.setVisibility(View.VISIBLE);
+                            }
+                        }
                         js("window.__nativeEvent && window.__nativeEvent('" + type + "'," + value + ")");
                     }
                 });
@@ -91,6 +108,7 @@ public class SimpleActivity extends ShellActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    if (blackout != null) blackout.setVisibility(View.VISIBLE);
                     if (player != null) player.open(url, hls);
                 }
             });
