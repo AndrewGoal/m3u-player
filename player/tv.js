@@ -63,7 +63,6 @@
   var searchInput = null;
   var wrap = null;
   var listEl = null;
-  var chipsEl = null;
   var bar = null;
   var barTimer = 0;
   var osdEl = null;
@@ -617,7 +616,6 @@
       });
     }
     listEl = $('list');
-    chipsEl = $('chips');
 
     if (!video || !listEl) return;
 
