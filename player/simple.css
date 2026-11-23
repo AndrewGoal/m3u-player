@@ -538,3 +538,24 @@ body {
 .panel-hint.is-error {
   color: #ff9aa5;
 }
+
+/* 换源时：列表让位，给个转圈，别让人以为卡死了 */
+.panel-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 34px 0 26px;
+  font-size: 21px;
+  color: #b9c9de;
+  text-align: center;
+}
+
+.panel-loading[hidden] {
+  display: none;
+}
+
+.panel.sources.is-loading .rows {
+  display: none;
+}

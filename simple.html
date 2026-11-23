@@ -10,7 +10,7 @@
   <meta name="referrer" content="no-referrer">
 
   <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
-  <link rel="stylesheet" href="player/simple.css?v=15">
+  <link rel="stylesheet" href="player/simple.css?v=18">
 </head>
 <body>
   <!-- 进度条：只在按左右键时出现一会儿 -->
@@ -81,6 +81,10 @@
       <span class="panel-hint" id="sourceHint">上下选择 · OK 确认 · 返回关闭</span>
     </div>
     <ul class="rows" id="sourceList"></ul>
+    <div class="panel-loading" id="sourceLoading" hidden>
+      <span class="spinner" aria-hidden="true"></span>
+      <span id="sourceLoadingText">正在拉取…</span>
+    </div>
   </div>
 
   <!-- 换台层：靠左，两级联动 -->
@@ -97,7 +101,7 @@
 
   <script src="player/sdk.js"></script>
   <script src="https://andrewgoal.github.io/cctv_weather_forecasting_m3u/weather-provider.js"></script>
-  <script src="player/playlist.js?v=15"></script>
-  <script src="player/simple.js?v=15"></script>
+  <script src="player/playlist.js?v=18"></script>
+  <script src="player/simple.js?v=18"></script>
 </body>
 </html>

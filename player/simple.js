@@ -49,6 +49,8 @@
   var sourcePanel = document.getElementById('sourcePanel');
   var sourceList = document.getElementById('sourceList');
   var sourceHint = document.getElementById('sourceHint');
+  var sourceLoading = document.getElementById('sourceLoading');
+  var sourceLoadingText = document.getElementById('sourceLoadingText');
   var channelPanel = document.getElementById('channelPanel');
   var channelTitle = document.getElementById('channelTitle');
   var groupList = document.getElementById('groupList');
@@ -82,6 +84,7 @@
   var progressTimer = 0;
   var osdTimer = 0;
   var bufferTimer = 0;
+  var sourceLoadingTimer = 0;
   var watchdogTimer = 0;
   var switchingTimer = 0;
   var userPressed = false;
@@ -516,6 +519,23 @@
     });
   }
 
+  /** 换源加载提示：转圈 + 台源名 + 秒数，告诉用户"在干活" */
+  function beginSourceLoading(source) {
+    sourceLoadingText.textContent = '正在拉取 ' + source.label + '…';
+    sourceLoading.hidden = false;
+    var started = Date.now();
+    clearInterval(sourceLoadingTimer);
+    sourceLoadingTimer = setInterval(function () {
+      var seconds = Math.round((Date.now() - started) / 1000);
+      sourceLoadingText.textContent = '正在拉取 ' + source.label + '… ' + seconds + ' 秒';
+    }, 1000);
+  }
+
+  function endSourceLoading() {
+    clearInterval(sourceLoadingTimer);
+    sourceLoading.hidden = true;
+  }
+
   function openSources() {
     osd('');
     hideInfoVisual();
@@ -526,7 +546,7 @@
     sourceHint.classList.remove('is-error');
     sourceHint.textContent = '上下选择 · OK 确认 · 返回关闭';
     sourcePanel.classList.add('is-visible');
-    scrollRow(sourceList, state.sourceIndex);
+    scrollToIndex(sourceList, state.sourceIndex);
   }
 
   function closePanels() {
@@ -552,6 +572,7 @@
     sourcePanel.classList.add('is-loading');
     sourceHint.classList.remove('is-error');
     sourceHint.textContent = '正在拉取 ' + source.label + '…';
+    beginSourceLoading(source);
 
     fetchSource(source)
       .then(function (result) {
@@ -560,6 +581,7 @@
         writeActiveId(source.id);
         state.loading = false;
         sourcePanel.classList.remove('is-loading');
+        endSourceLoading();
         applyItems(source, items, { autoplay: true });
         closePanels();
         openChannels();
@@ -567,6 +589,7 @@
       .catch(function (error) {
         state.loading = false;
         sourcePanel.classList.remove('is-loading');
+        endSourceLoading();
         sourceHint.classList.add('is-error');
         sourceHint.textContent = '拉取失败：' + ((error && error.message) || '网络错误');
         osd('这个源拉不下来', 2000);
@@ -796,12 +819,12 @@
       case 38:
         state.sourceIndex = (state.sourceIndex - 1 + state.sources.length) % state.sources.length;
         renderSources();
-        scrollRow(sourceList, state.sourceIndex);
+        scrollToIndex(sourceList, state.sourceIndex);
         return true;
       case 40:
         state.sourceIndex = (state.sourceIndex + 1) % state.sources.length;
         renderSources();
-        scrollRow(sourceList, state.sourceIndex);
+        scrollToIndex(sourceList, state.sourceIndex);
         return true;
       case 13:
       case 23:
