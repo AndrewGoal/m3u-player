@@ -22,9 +22,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Assemble Pages site
         run: |
-          mkdir -p public/player public/examples public/docs
+          mkdir -p public/player public/examples public/docs public/icons
           cp index.html public/index.html
+          cp manifest.json sw.js public/
           cp -r player/. public/player/
+          cp -r icons/. public/icons/
           cp examples/*.html public/examples/
           cp docs/*.md public/docs/
           touch public/.nojekyll

@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="海纳百川-播放器">
+  <defs>
+    <linearGradient id="bg" x1="0.1" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#16345e"/>
+      <stop offset="0.5" stop-color="#0a1730"/>
+      <stop offset="1" stop-color="#050a14"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.28" cy="0.14" r="0.85">
+      <stop offset="0" stop-color="#3d9bff" stop-opacity="0.55"/>
+      <stop offset="0.5" stop-color="#2f7dff" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#2f7dff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="warmglow" cx="0.86" cy="0.9" r="0.55">
+      <stop offset="0" stop-color="#ff9f43" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#ff9f43" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="play" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#9fdcff"/>
+    </linearGradient>
+    <linearGradient id="waveShine" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2f8bff" stop-opacity="0.35"/>
+      <stop offset="0.32" stop-color="#7fd0ff"/>
+      <stop offset="0.72" stop-color="#46b6ff"/>
+      <stop offset="1" stop-color="#2f8bff" stop-opacity="0.3"/>
+    </linearGradient>
+    <filter id="playGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="16"/>
+    </filter>
+    <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9fd6ff" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#9fd6ff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="116" fill="url(#glow)"/>
+  <rect width="512" height="512" rx="116" fill="url(#warmglow)"/>
+  <rect x="1.5" y="1.5" width="509" height="509" rx="114.5" fill="none" stroke="url(#edge)" stroke-width="3"/>
+
+  <g transform="translate(0 -20)">
+    <!-- soft halo behind the play mark -->
+    <path d="M214 165 L214 315 L337 240 Z" fill="#4fb4ff" opacity="0.45" filter="url(#playGlow)"/>
+    <!-- play mark -->
+    <path d="M214 165 L214 315 L337 240 Z" fill="url(#play)" stroke="url(#play)" stroke-width="34" stroke-linejoin="round"/>
+
+    <!-- sea / 百川 waves -->
+    <g fill="none" stroke="url(#waveShine)" stroke-linecap="round">
+      <path d="M126 371 q33 -27 66 0 t66 0 t66 0 t66 0" stroke-width="15" opacity="0.95"/>
+      <path d="M146 411 q28 -22 56 0 t56 0 t56 0 t56 0" stroke-width="13" opacity="0.55"/>
+      <path d="M172 448 q23 -18 46 0 t46 0 t46 0 t46 0" stroke-width="11" opacity="0.3"/>
+    </g>
+  </g>
+</svg>

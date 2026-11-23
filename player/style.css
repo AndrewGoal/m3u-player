@@ -143,6 +143,13 @@ a:hover {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
+.brand-badge img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 14px;
+}
+
 .brand-copy {
   display: flex;
   flex-direction: column;
@@ -631,7 +638,7 @@ a:hover {
 .menu {
   position: absolute;
   z-index: 20;
-  top: calc(100% + 8px);
+  bottom: calc(100% + 8px);
   right: 0;
   width: 196px;
   padding: 6px;
@@ -1452,4 +1459,73 @@ body.embed .now-card {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ---------- PWA：独立窗口与更新提示 ---------- */
+
+/* 安装为应用后，为刘海屏 / 手势条留出安全区 */
+@media (display-mode: standalone) {
+  body {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .toast,
+  .pwa-update {
+    bottom: calc(26px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.pwa-update {
+  position: fixed;
+  z-index: 81;
+  left: 50%;
+  bottom: 26px;
+  transform: translate(-50%, 14px);
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(92vw, 460px);
+  padding: 8px 9px 8px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: rgba(16, 26, 44, 0.96);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+  color: var(--text);
+  font-size: 12.5px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.22s ease, transform 0.22s ease, visibility 0.22s ease;
+}
+
+.pwa-update.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+}
+
+.pwa-update span {
+  white-space: nowrap;
+}
+
+.pwa-update button {
+  flex: none;
+  padding: 7px 15px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--accent-strong), var(--accent));
+  color: #04202f;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.16s ease;
+}
+
+.pwa-update button:hover:not(:disabled) {
+  filter: brightness(1.07);
+}
+
+.pwa-update button:disabled {
+  opacity: 0.65;
+  cursor: default;
 }
