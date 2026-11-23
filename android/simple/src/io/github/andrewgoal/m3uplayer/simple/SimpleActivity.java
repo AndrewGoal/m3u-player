@@ -1,9 +1,7 @@
 package io.github.andrewgoal.m3uplayer.simple;
 
-import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
-import android.net.Uri;
 import android.os.SystemClock;
 import android.view.KeyEvent;
 import android.view.SurfaceView;
@@ -33,15 +31,6 @@ public class SimpleActivity extends ShellActivity {
 
     private static final String DEFAULT_URL = "https://andrewgoal.github.io/m3u-player/simple.html?tv=1";
     private static final long EXIT_WINDOW_MS = 1600;
-
-    /** 原生播放失败时，网页可以退回 <video>；这里优先还是让系统播放器接手。 */
-    private static final String[] PLAYER_PACKAGES = {
-            "org.videolan.vlc",
-            "com.fongmi.android.tv",
-            "com.github.tvbox.osc",
-            "com.github.tvbox.pro",
-            "org.xbmc.kodi"
-    };
 
     private SurfaceView surfaceView;
     private NativePlayer player;
@@ -146,42 +135,6 @@ public class SimpleActivity extends ShellActivity {
                     if (player != null) player.stop();
                 }
             });
-        }
-
-        @JavascriptInterface
-        public void openNative(final String url) {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    launchExternal(url);
-                }
-            });
-        }
-    }
-
-    private void launchExternal(String url) {
-        String type = url != null && url.contains(".m3u8") ? "application/x-mpegURL" : "video/*";
-        Intent base = new Intent(Intent.ACTION_VIEW);
-        base.setDataAndType(Uri.parse(url), type);
-        base.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
-        for (String pkg : PLAYER_PACKAGES) {
-            Intent intent = new Intent(base);
-            intent.setPackage(pkg);
-            if (getPackageManager().resolveActivity(intent, 0) != null) {
-                try {
-                    startActivity(intent);
-                    return;
-                } catch (Exception ignored) {
-                    // 换下一个
-                }
-            }
-        }
-
-        try {
-            startActivity(base);
-        } catch (Exception error) {
-            Toast.makeText(this, "没有可用的系统播放器", Toast.LENGTH_SHORT).show();
         }
     }
 

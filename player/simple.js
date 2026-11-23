@@ -43,8 +43,9 @@
   var switchingEl = document.getElementById('switching');
   var switchingText = document.getElementById('switchingText');
   var switchingSpeed = document.getElementById('switchingSpeed');
-  var pauseEl = document.getElementById('pausePanel');
-  var pauseTitle = document.getElementById('pauseTitle');
+  var infoEl = document.getElementById('infoPanel');
+  var infoTitle = document.getElementById('infoTitle');
+  var infoSub = document.getElementById('infoSub');
   var sourcePanel = document.getElementById('sourcePanel');
   var sourceList = document.getElementById('sourceList');
   var sourceHint = document.getElementById('sourceHint');
@@ -67,6 +68,7 @@
     durationMs: 0,
     pendingTitle: '',
     bandwidth: 0,
+    infoKind: '',
     mode: 'video',        // video | sources | channels
     column: 'items',      // groups | items
     sourceIndex: 0,
@@ -177,17 +179,26 @@
 
   function paintSpeed() {
     if (!switchingSpeed) return;
-    switchingSpeed.textContent = switchingEl.hidden ? '' : formatSpeed(state.bandwidth);
+    if (switchingEl.hidden) {
+      switchingSpeed.textContent = '';
+      return;
+    }
+    switchingSpeed.textContent = formatSpeed(state.bandwidth) || '测速中……';
   }
 
-  function showPause() {
+  /** 常驻信息层：暂停、播不了都用它，直到用户操作。 */
+  function showInfo(kind, text) {
     if (!state.current) return;
-    pauseTitle.textContent = state.current.title;
-    pauseEl.hidden = false;
+    state.infoKind = kind;
+    infoTitle.textContent = state.current.title;
+    infoSub.textContent = text || '';
+    infoSub.classList.toggle('is-error', kind === 'error');
+    infoEl.hidden = false;
   }
 
-  function hidePause() {
-    pauseEl.hidden = true;
+  function hideInfo() {
+    state.infoKind = '';
+    infoEl.hidden = true;
   }
 
   function isHlsUrl(url) {
@@ -372,7 +383,7 @@
     state.posMs = 0;
     state.durationMs = 0;
     state.playing = false;
-    hidePause();
+    hideInfo();
     showSwitching(item.title);
     state.pendingTitle = opts.silent ? '' : item.title;
     if (state.mode === 'channels') renderChannels();
@@ -384,7 +395,7 @@
     watchdogTimer = setTimeout(function () {
       if (state.current && state.current.url === item.url && !state.playing) {
         hideSwitching();
-        osd('这个频道一直没有画面 · 上下键换台', 4000);
+        showInfo('error', '这个频道一直没有画面 · 上下键换台');
       }
     }, 20000);
   }
@@ -453,21 +464,6 @@
 
   /* ---------- 换源层 ---------- */
 
-  function hasNativePlayer() {
-    return !!(SHELL && state.current && typeof window.TVShell.openNative === 'function');
-  }
-
-  function openNative() {
-    var url = state.current && (state.current.playUrl || state.current.url);
-    closePanels();
-    if (!url || !hasNativePlayer()) {
-      osd('这个环境没有系统播放器可用', 2200);
-      return;
-    }
-    shell('openNative', url);
-    osd('正在用系统播放器打开…', 2000);
-  }
-
   function renderSources() {
     sourceList.replaceChildren();
     state.sources.forEach(function (source, index) {
@@ -497,29 +493,11 @@
 
       sourceList.appendChild(row);
     });
-
-    if (hasNativePlayer()) {
-      var nativeRow = document.createElement('li');
-      var nativeLabel = document.createElement('span');
-      nativeLabel.className = 'label';
-      nativeLabel.textContent = '用系统播放器打开';
-      var nativeSub = document.createElement('span');
-      nativeSub.className = 'sub';
-      nativeSub.textContent = '播不了时用';
-      nativeRow.append(nativeLabel, nativeSub);
-      if (state.sourceIndex === state.sources.length) nativeRow.classList.add('is-focus');
-      nativeRow.addEventListener('click', function () {
-        if (state.mode !== 'sources') return;
-        state.sourceIndex = state.sources.length;
-        openNative();
-      });
-      sourceList.appendChild(nativeRow);
-    }
   }
 
   function openSources() {
     osd('');
-    hidePause();
+    hideInfo();
     state.mode = 'sources';
     state.sourceIndex = Math.max(0, state.sources.indexOf(activeSource()));
     renderSources();
@@ -536,10 +514,6 @@
   }
 
   function selectSource() {
-    if (state.sourceIndex >= state.sources.length) {
-      openNative();
-      return;
-    }
     var source = state.sources[state.sourceIndex];
     if (!source || state.loading) return;
 
@@ -709,7 +683,7 @@
   }
 
   function openChannels() {
-    hidePause();
+    hideInfo();
     if (!state.groups.length) {
       osd('还没有节目', 1600);
       return;
@@ -776,19 +750,15 @@
     }
   }
 
-  function sourceRowCount() {
-    return state.sources.length + (hasNativePlayer() ? 1 : 0);
-  }
-
   function sourcesKey(code) {
     switch (code) {
       case 38:
-        state.sourceIndex = (state.sourceIndex - 1 + sourceRowCount()) % sourceRowCount();
+        state.sourceIndex = (state.sourceIndex - 1 + state.sources.length) % state.sources.length;
         renderSources();
         scrollRow(sourceList, state.sourceIndex);
         return true;
       case 40:
-        state.sourceIndex = (state.sourceIndex + 1) % sourceRowCount();
+        state.sourceIndex = (state.sourceIndex + 1) % state.sources.length;
         renderSources();
         scrollRow(sourceList, state.sourceIndex);
         return true;
@@ -853,6 +823,7 @@
       event.preventDefault();
       event.stopPropagation();
     }
+    if (state.infoKind === 'error') hideInfo();
   }
 
   window.__simpleBack = function () {
@@ -890,7 +861,7 @@
         state.playing = true;
         clearTimeout(bufferTimer);
         clearTimeout(watchdogTimer);
-        hidePause();
+        hideInfo();
         hideSwitching();
         if (state.pendingTitle) {
           osd(state.pendingTitle, 1600);
@@ -900,7 +871,7 @@
       case 'paused':
         // 用户主动暂停：显示台名 + 按键说明（换台/缓冲过程中不弹）
         state.playing = false;
-        if (switchingEl.hidden && state.mode === 'video') showPause();
+        if (switchingEl.hidden && state.mode === 'video') showInfo('pause', '已暂停');
         break;
       case 'ended':
         state.playing = false;
@@ -922,9 +893,8 @@
       case 'error':
         state.playing = false;
         clearTimeout(watchdogTimer);
-        hidePause();
         hideSwitching();
-        osd('这个频道播不了 · 上下键换台', 3000);
+        showInfo('error', '这个频道播不了 · 上下键换台');
         break;
       default:
         break;
@@ -950,7 +920,7 @@
     osdEl.hidden = false;
     sourcePanel.hidden = false;
     channelPanel.hidden = false;
-    pauseEl.hidden = true;
+    infoEl.hidden = true;
 
     if (!Parser || !SDK) {
       showSwitching('播放器脚本加载失败');
