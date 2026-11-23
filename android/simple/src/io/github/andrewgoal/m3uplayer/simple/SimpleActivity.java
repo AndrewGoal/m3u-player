@@ -49,7 +49,9 @@ public class SimpleActivity extends ShellActivity {
 
     @Override
     protected String defaultUrl() {
-        return DEFAULT_URL;
+        // 每次启动都带一个时间戳：GitHub Pages 给 HTML 也缓存 10 分钟，
+        // 不加的话改完前端要等很久才生效。css/js 由页面自己的 ?v= 控制。
+        return DEFAULT_URL + "&_=" + System.currentTimeMillis();
     }
 
     @Override
