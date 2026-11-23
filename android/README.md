@@ -1,6 +1,13 @@
 # Android TV 壳
 
-一个 Activity 的 WebView 壳，把网页播放器放进电视的桌面里。它不做播放：
+两个变体，各是一个 Activity 的 WebView 壳，把网页播放器放进电视的桌面里，可以同时安装：
+
+| 变体 | 包名 | 页面 | APK |
+| --- | --- | --- | --- |
+| 完整版 | `io.github.andrewgoal.m3uplayer` | `/?tv=1` | `m3u-player-tv.apk` |
+| 简洁版 | `io.github.andrewgoal.m3uplayer.simple` | `/simple.html?tv=1` | `m3u-player-tv-simple.apk` |
+
+两个都只做播放之外的事情（全屏、常亮、自动播放、按键转发），共用 `ShellActivity`；按键语义在 `MainActivity` / `simple/src/.../SimpleActivity.java` 里各写各的。它不做播放：
 
 - 页面来自 `https://andrewgoal.github.io/m3u-player/?tv=1`，改前端不用重装 APK
 - 全屏、常亮、无标题栏，遥控器返回键先交给网页（收控制条 / 退影院模式），网页不要了才退出
@@ -20,9 +27,10 @@ sdkmanager "build-tools;34.0.0" "platforms;android-34"
 ## 构建 / 安装
 
 ```bash
-./build.sh                 # 只出 APK：android/m3u-player-tv.apk
-./build.sh --install       # 构建并 adb install -r
-./build.sh --launch        # 构建、安装、启动
+./build.sh                       # 完整版：android/m3u-player-tv.apk
+./build.sh --simple              # 简洁版：android/m3u-player-tv-simple.apk
+./build.sh --install             # 构建并 adb install -r
+./build.sh --simple --launch     # 构建、安装、启动简洁版
 SERIAL=192.168.1.10:5555 ./build.sh --launch   # 指定设备
 ```
 
@@ -41,6 +49,9 @@ KEYSTORE=/path/to/my.jks STOREPASS=xxxx ./build.sh
 ```bash
 adb shell am start -n io.github.andrewgoal.m3uplayer/.MainActivity \
   -e url "http://192.168.1.2:8080/?tv=1"
+
+adb shell am start -n io.github.andrewgoal.m3uplayer.simple/.SimpleActivity \
+  -e url "http://192.168.1.2:8080/simple.html"
 ```
 
 `--launch` 时也可以用环境变量临时指定（不改 APK 里的默认值）：

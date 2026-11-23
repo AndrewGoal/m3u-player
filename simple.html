@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>海纳百川-简洁播放器</title>
+  <meta name="description" content="海纳百川-简洁播放器：打开即全屏播放，遥控器操作。">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#000000">
+  <meta name="referrer" content="no-referrer">
+
+  <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="stylesheet" href="player/simple.css">
+</head>
+<body>
+  <video id="video" playsinline preload="auto" referrerpolicy="no-referrer"></video>
+
+  <!-- 进度条：只在按左右键时出现一会儿 -->
+  <div class="progress" id="progress" hidden>
+    <div class="progress-track"><span class="progress-fill" id="progressFill"></span></div>
+    <div class="progress-time" id="progressTime">00:00 / 00:00</div>
+  </div>
+
+  <!-- 状态提示：换台、暂停等，短暂出现 -->
+  <div class="osd" id="osd" hidden></div>
+
+  <!-- 换源层：居中，半透明 -->
+  <div class="panel sources" id="sourcePanel" hidden aria-label="选择节目源">
+    <div class="panel-head">
+      <span class="panel-title">节目源</span>
+      <span class="panel-hint" id="sourceHint">上下选择 · OK 确认 · 返回关闭</span>
+    </div>
+    <ul class="rows" id="sourceList"></ul>
+  </div>
+
+  <!-- 换台层：靠左，两级联动 -->
+  <div class="panel channels" id="channelPanel" hidden aria-label="换台">
+    <div class="panel-head">
+      <span class="panel-title" id="channelTitle">换台</span>
+      <span class="panel-hint">左右切栏 · 上下选择 · OK 换台</span>
+    </div>
+    <div class="channel-cols">
+      <ul class="rows groups" id="groupList"></ul>
+      <ul class="rows items" id="itemList"></ul>
+    </div>
+  </div>
+
+  <script src="player/sdk.js"></script>
+  <script src="https://andrewgoal.github.io/cctv_weather_forecasting_m3u/weather-provider.js"></script>
+  <script src="player/playlist.js"></script>
+  <script src="player/vendor/hls.light.min.js"></script>
+  <script src="player/simple.js"></script>
+</body>
+</html>

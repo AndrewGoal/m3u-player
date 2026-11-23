@@ -2,30 +2,57 @@
 #
 # 构建 Android TV 壳（不用 Gradle：aapt2 + javac + d8 + apksigner）。
 #
-#   ./build.sh              # 出 APK：android/m3u-player-tv.apk
-#   ./build.sh --install    # 构建并 adb install -r
-#   ./build.sh --launch     # 构建、安装并启动
+#   ./build.sh                    # 完整版 APK：android/m3u-player-tv.apk
+#   ./build.sh --simple           # 简洁版 APK：android/m3u-player-tv-simple.apk
+#   ./build.sh --install          # 构建并 adb install -r
+#   ./build.sh --simple --launch  # 构建、安装并启动简洁版
 #
 # 环境变量：
 #   ANDROID_SDK_ROOT  默认 ~/Android/sdk
 #   SERIAL            默认取 adb 里唯一的设备
-#   TV_URL            覆盖 APK 里的默认地址（默认 GitHub Pages + ?tv=1）
+#   TV_URL            仅 --launch：临时指定启动地址（不改 APK 里的默认值）
 #   KEYSTORE          签名密钥位置（默认 ~/.config/m3u-player-tv/tv.jks，自动生成）
 set -euo pipefail
 cd "$(dirname "$0")"
+
+VARIANT="full"
+ACTION=""
+for arg in "$@"; do
+  case "$arg" in
+    --simple|simple) VARIANT="simple" ;;
+    --full|full) VARIANT="full" ;;
+    --install|--launch) ACTION="$arg" ;;
+    -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
+    *) echo "未知参数：$arg" >&2; exit 1 ;;
+  esac
+done
+
+if [ "$VARIANT" = "simple" ]; then
+  MANIFEST="simple/AndroidManifest.xml"
+  RES_DIR="simple/res"
+  ACTIVITY_SRC="simple/src/io/github/andrewgoal/m3uplayer/simple/SimpleActivity.java"
+  PACKAGE="io.github.andrewgoal.m3uplayer.simple"
+  ACTIVITY=".SimpleActivity"
+  APP="m3u-player-tv-simple.apk"
+else
+  MANIFEST="AndroidManifest.xml"
+  RES_DIR="res"
+  ACTIVITY_SRC="src/io/github/andrewgoal/m3uplayer/MainActivity.java"
+  PACKAGE="io.github.andrewgoal.m3uplayer"
+  ACTIVITY=".MainActivity"
+  APP="m3u-player-tv.apk"
+fi
 
 SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/Android/sdk}}"
 BUILD_TOOLS="${BUILD_TOOLS:-$SDK/build-tools/34.0.0}"
 PLATFORM="${PLATFORM:-$SDK/platforms/android-34/android.jar}"
 MIN_SDK=21
 TARGET_SDK=33
-PACKAGE=io.github.andrewgoal.m3uplayer
-OUT=build
-APP=m3u-player-tv.apk
+OUT="build/$VARIANT"
 KEYSTORE="${KEYSTORE:-$HOME/.config/m3u-player-tv/tv.jks}"
 STOREPASS="${STOREPASS:-m3u-player-tv}"
 
-# build-tools 34 的 d8 在老 JDK 之外会崩（JDK 21+ 有已知 NPE），优先用 17
+# build-tools 34 的 d8 在 JDK 21+ 上会崩（已知 NPE），优先用 17
 if [ -z "${JAVA_HOME:-}" ]; then
   for candidate in /usr/lib/jvm/java-17-openjdk "$HOME/.jdks"/*17*; do
     if [ -x "$candidate/bin/java" ]; then
@@ -48,14 +75,14 @@ for tool in aapt2 d8 zipalign apksigner; do
 done
 [ -f "$PLATFORM" ] || { echo "缺少 android.jar：$PLATFORM" >&2; exit 1; }
 
-echo "==> 资源"
+echo "==> 资源（$VARIANT）"
 rm -rf "$OUT"
 mkdir -p "$OUT/compiled" "$OUT/classes" "$OUT/dex" "$OUT/gen"
-"$BUILD_TOOLS/aapt2" compile --dir res -o "$OUT/compiled/res.zip"
+"$BUILD_TOOLS/aapt2" compile --dir "$RES_DIR" -o "$OUT/compiled/res.zip"
 "$BUILD_TOOLS/aapt2" link \
   -o "$OUT/base.apk" \
   -I "$PLATFORM" \
-  --manifest AndroidManifest.xml \
+  --manifest "$MANIFEST" \
   -R "$OUT/compiled/res.zip" \
   --java "$OUT/gen" \
   --auto-add-overlay \
@@ -65,7 +92,10 @@ mkdir -p "$OUT/compiled" "$OUT/classes" "$OUT/dex" "$OUT/gen"
 echo "==> 编译 Java"
 set -o pipefail
 javac -source 8 -target 8 -encoding UTF-8 -bootclasspath "$PLATFORM" \
-  -d "$OUT/classes" $(find src "$OUT/gen" -name '*.java') 2>&1 \
+  -d "$OUT/classes" \
+  src/io/github/andrewgoal/m3uplayer/ShellActivity.java \
+  "$ACTIVITY_SRC" \
+  $(find "$OUT/gen" -name '*.java') 2>&1 \
   | grep -v -e "bootstrap class path" -e "source value 8" -e "target value 8" -e "Xlint:-options" \
   || { echo "javac 失败" >&2; exit 1; }
 
@@ -93,17 +123,17 @@ echo "==> 完成：android/$APP ($(du -h "$APP" | cut -f1))"
 ADB=(adb)
 [ -n "${SERIAL:-}" ] && ADB=(adb -s "$SERIAL")
 
-if [ "${1:-}" = "--install" ] || [ "${1:-}" = "--launch" ]; then
+if [ "$ACTION" = "--install" ] || [ "$ACTION" = "--launch" ]; then
   echo "==> 安装"
   "${ADB[@]}" install -r "$APP"
 fi
 
-if [ "${1:-}" = "--launch" ]; then
+if [ "$ACTION" = "--launch" ]; then
   echo "==> 启动"
+  "${ADB[@]}" shell am force-stop "$PACKAGE"
   if [ -n "${TV_URL:-}" ]; then
-    "${ADB[@]}" shell am start -n "$PACKAGE/.MainActivity" -e url "$TV_URL"
+    "${ADB[@]}" shell am start -n "$PACKAGE/$ACTIVITY" -e url "$TV_URL"
   else
-    "${ADB[@]}" shell monkey -p "$PACKAGE" -c android.intent.category.LEANBACK_LAUNCHER 1 >/dev/null
-    "${ADB[@]}" shell am start -n "$PACKAGE/.MainActivity"
+    "${ADB[@]}" shell am start -n "$PACKAGE/$ACTIVITY"
   fi
 fi
