@@ -716,13 +716,18 @@
       return item.url === previousCurrent.url;
     }) : null;
 
+    // 节目变更提示延后到数据源提示之后，避免被覆盖
+    var programNotice = null;
     if (previousCurrent && !refreshedCurrent) {
       // 正在播放的节目不在新列表里：不打断播放，只提示
-      showNotice('正在播放的节目已不在最新列表中，当前播放不受影响。', 'warn', {
-        label: '切换到最新',
-        scope: 'source',
-        onClick: function () { selectItem(defaultItem(), { play: true, scroll: true }); }
-      });
+      programNotice = {
+        text: '正在播放的节目已不在最新列表中，当前播放不受影响。',
+        action: {
+          label: '切换到最新',
+          scope: 'program',
+          onClick: function () { selectItem(defaultItem(), { play: true, scroll: true }); }
+        }
+      };
     } else if (refreshedCurrent) {
       state.current = refreshedCurrent;
     }
@@ -760,11 +765,17 @@
       }
     }
 
-    if (state.source && !state.source.primary && !state.source.custom) {
-      showNotice('主数据源暂时不可用，当前使用' + state.source.label + '（可能不是最新）。稍后点「刷新」重试。', 'warn');
-    } else if (firstLoad) {
-      hideNotice();
+    // 只要成功从在线源加载，就清掉之前残留的离线缓存提示
+    if (!result.source.cached) {
+      hideNotice('cache');
+      hideNotice('fallback');
     }
+    if (!result.source.cached && state.source && !state.source.primary && !state.source.custom) {
+      showNotice('主数据源暂时不可用，当前使用' + state.source.label + '（可能不是最新）。稍后点「刷新」重试。', 'warn', {
+        scope: 'fallback'
+      });
+    }
+    if (programNotice) showNotice(programNotice.text, 'warn', programNotice.action);
 
     notifyParent('m3u-player:ready', {
       count: state.items.length,
@@ -806,9 +817,9 @@
             lastModified: cached.savedAt ? new Date(cached.savedAt).toUTCString() : null
           };
           finishLoad(result, opts);
-          showNotice('网络不可用，正在显示 ' + formatDateTime(cached.savedAt) + ' 缓存的本节目单。', 'warn', {
+          showNotice('数据源暂时不可用，正在显示 ' + formatDateTime(cached.savedAt) + ' 的缓存节目单。', 'warn', {
             label: '重试',
-            scope: 'source',
+            scope: 'cache',
             onClick: function () { loadPlaylist({ manual: true }); }
           });
           setStatus('离线缓存 · ' + items.length + ' 个节目', 'warn');
