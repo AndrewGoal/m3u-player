@@ -22,7 +22,7 @@
     title: 'M3U 播放器',
     subtitle: '通用 m3u / m3u8 网页播放器',
     description: '支持普通视频与 HLS 直播的通用 m3u 播放器，无广告、无统计。',
-    repo: '',
+    repo: 'https://github.com/AndrewGoal/m3u-player',
     parentOrigin: '',
     refreshMinutes: 30,
     timeZone: 'Asia/Shanghai',
