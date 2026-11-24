@@ -987,10 +987,13 @@
     showSwitching('正在加载…');
 
     state.sources = loadSources();
-    // 每次启动都从第一个源开始（?m3u= 时优先临时源），不记忆上次的
-    state.activeId = params.get('m3u')
-      ? 'custom:url'
-      : (state.sources[0] ? state.sources[0].id : '');
+    // 每次启动都从固定的源开始（?m3u= 时优先临时源），不记忆上次的：
+    // 普通入口 = 第一个源；带 src=last 的入口（电视节目）= 最后一个源
+    var startAtLast = params.get('src') === 'last';
+    var startSource = startAtLast
+      ? state.sources[state.sources.length - 1]
+      : state.sources[0];
+    state.activeId = params.get('m3u') ? 'custom:url' : (startSource ? startSource.id : '');
 
     renderSources();
     var source = activeSource();

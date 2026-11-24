@@ -4,6 +4,7 @@
 #
 #   ./build.sh                    # 完整版 APK：android/m3u-player-tv.apk
 #   ./build.sh --simple           # 简洁版 APK：android/m3u-player-tv-simple.apk
+#   ./build.sh --tv               # 看电视 APK：android/m3u-player-tv-last.apk
 #   ./build.sh --install          # 构建并 adb install -r
 #   ./build.sh --simple --launch  # 构建、安装并启动简洁版
 #
@@ -20,6 +21,7 @@ ACTION=""
 for arg in "$@"; do
   case "$arg" in
     --simple|simple) VARIANT="simple" ;;
+    --tv|tv) VARIANT="tv" ;;
     --full|full) VARIANT="full" ;;
     --install|--launch) ACTION="$arg" ;;
     -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
@@ -34,6 +36,13 @@ if [ "$VARIANT" = "simple" ]; then
   PACKAGE="io.github.andrewgoal.m3uplayer.simple"
   ACTIVITY=".SimpleActivity"
   APP="m3u-player-tv-simple.apk"
+elif [ "$VARIANT" = "tv" ]; then
+  MANIFEST="tv/AndroidManifest.xml"
+  RES_DIR="tv/res"
+  ACTIVITY_SRC="tv/src/io/github/andrewgoal/m3uplayer/tv/TvActivity.java"
+  PACKAGE="io.github.andrewgoal.m3uplayer.tv"
+  ACTIVITY=".TvActivity"
+  APP="m3u-player-tv-last.apk"
 else
   MANIFEST="AndroidManifest.xml"
   RES_DIR="res"
@@ -78,7 +87,7 @@ done
 # 简洁版要 ExoPlayer（Media3），依赖在 vendor/ 里，首次构建自动下载
 VENDOR_CP=""
 VENDOR_RES=()
-if [ "$VARIANT" = "simple" ]; then
+if [ "$VARIANT" != "full" ]; then
   if [ ! -d vendor/jars ] || [ -z "$(ls -A vendor/jars 2>/dev/null)" ]; then
     echo "==> 拉取 ExoPlayer 依赖"
     ./fetch-deps.sh
@@ -116,6 +125,10 @@ echo "==> 编译 Java"
 JAVA_SRC=(src/io/github/andrewgoal/m3uplayer/ShellActivity.java "$ACTIVITY_SRC")
 if [ "$VARIANT" = "simple" ]; then
   while IFS= read -r file; do JAVA_SRC+=("$file"); done < <(find simple/src -name '*.java' ! -name 'SimpleActivity.java')
+elif [ "$VARIANT" = "tv" ]; then
+  # 看电视版复用简洁版的全部实现，只换入口 Activity 和清单
+  while IFS= read -r file; do JAVA_SRC+=("$file"); done < <(find simple/src -name '*.java')
+  while IFS= read -r file; do JAVA_SRC+=("$file"); done < <(find tv/src -name '*.java' ! -name 'TvActivity.java')
 fi
 set -o pipefail
 javac -source 8 -target 8 -encoding UTF-8 -bootclasspath "$PLATFORM" \
@@ -128,7 +141,7 @@ javac -source 8 -target 8 -encoding UTF-8 -bootclasspath "$PLATFORM" \
 
 echo "==> dex"
 DEX_INPUTS=($(find "$OUT/classes" -name '*.class'))
-if [ "$VARIANT" = "simple" ]; then
+if [ "$VARIANT" != "full" ]; then
   DEX_INPUTS+=(vendor/jars/*.jar)
 fi
 "$BUILD_TOOLS/d8" --min-api "$MIN_SDK" --lib "$PLATFORM" --output "$OUT/dex" "${DEX_INPUTS[@]}"

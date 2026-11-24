@@ -1,11 +1,16 @@
 # Android TV 壳
 
-两个变体，各是一个 Activity 的 WebView 壳，把网页播放器放进电视的桌面里，可以同时安装：
+三个变体，各是一个 Activity 的 WebView 壳，把网页播放器放进电视的桌面里，可以同时安装：
 
 | 变体 | 包名 | 页面 | APK |
 | --- | --- | --- | --- |
 | 完整版 | `io.github.andrewgoal.m3uplayer` | `/?tv=1` | `m3u-player-tv.apk` |
-| 简洁版（桌面名：气象分析） | `io.github.andrewgoal.m3uplayer.simple` | `/simple.html?tv=1` | `m3u-player-tv-simple.apk` |
+| 简洁版（桌面名：气象分析，第一个源） | `io.github.andrewgoal.m3uplayer.simple` | `/simple.html?tv=1` | `m3u-player-tv-simple.apk` |
+| 看电视（桌面名：看电视，最后一个源） | `io.github.andrewgoal.m3uplayer.tv` | `/simple.html?tv=1&src=last` | `m3u-player-tv-last.apk` |
+
+「看电视」和简洁版是同一套实现，只多一个 `src=last` 参数。之所以单独打包：这台盒子的桌面
+（`com.hisight.mslauncher`）每个包只显示一个图标，同一个 APK 里放两个 LAUNCHER Activity
+会互相顶掉，所以用两个包名来做两个桌面入口。
 
 两个都只做播放之外的事情（全屏、常亮、自动播放、按键转发），共用 `ShellActivity`；按键语义在 `MainActivity` / `simple/src/.../SimpleActivity.java` 里各写各的。它不做播放：
 
@@ -15,7 +20,7 @@
 - 遥控器播放/暂停/快进/上一台/下一台转发给网页
 - HTML5 视频全屏交给 `WebChromeClient` 渲染
 - 简洁版的画面/声音走 **ExoPlayer（Media3）**：SurfaceView 硬解，TS 分片和 fMP4 的 HLS 都吃；网页那层 `<video>` 和 hls.js 已经删掉，播不了只提示换台
-- 简洁版额外提供 `TVShell.openNative(url)`：把播不了的频道交给机上的 VLC / 影视仓 / Kodi（按包名逐个试，避免弹选择框），返回键做了连按两次退出
+- 简洁版返回键做了连按两次退出（防误触）
 
 ## 依赖
 
@@ -32,6 +37,7 @@ sdkmanager "build-tools;34.0.0" "platforms;android-34"
 ```bash
 ./build.sh                       # 完整版：android/m3u-player-tv.apk
 ./build.sh --simple              # 简洁版：android/m3u-player-tv-simple.apk
+./build.sh --tv                  # 看电视：android/m3u-player-tv-last.apk
 ./build.sh --install             # 构建并 adb install -r
 ./build.sh --simple --launch     # 构建、安装、启动简洁版
 SERIAL=192.168.1.10:5555 ./build.sh --launch   # 指定设备
