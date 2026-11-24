@@ -30,7 +30,7 @@
   var BUILTIN_SOURCES = [
     { id: 'builtin:weather-live', label: '气象分析（无滞后，现取）', provider: 'weatherLive', builtin: true },
     { id: 'builtin:weather-file', label: '气象分析（或滞后，兜底）', url: WEATHER_M3U_URL, builtin: true },
-    { id: 'builtin:iptv-file', label: '电视节目', url: IPTV_M3U_URL, builtin: true }
+    { id: 'builtin:iptv-file', label: '电视节目（国内外电视台）', url: IPTV_M3U_URL, builtin: true }
   ];
 
   var REFRESH_MS = 30 * 60 * 1000;
