@@ -931,7 +931,8 @@
           clearTimeout(bufferTimer);
           // 卡住时不要弹「暂停」，而是把台名 + 网速摆出来，直到重新出画
           bufferTimer = setTimeout(function () {
-            if (state.playing) return;
+            // 面板打开时不抢画面：换源/换台层自己会说明情况
+            if (state.playing || state.mode !== 'video') return;
             showSwitching(state.current ? state.current.title : '正在缓冲…');
           }, 1200);
         } else {
